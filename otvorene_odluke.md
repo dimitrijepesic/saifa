@@ -1,25 +1,175 @@
 # SAIFA — Otvorene arhitektonske odluke
 
-Izvučeno iz `SAIFA_use_cases_final.md`: sve ⚠ napomene i inline napomene u zagradama koje eksplicitno upućuju na otvorenu tačku („vidi otvorene tačke" / „potvrditi" / „pretpostavka" / „zavisi od odluke"). ID-evi su dodeljeni redom pojavljivanja u fajlu. Kolona „MVP ili Later" primenjuje kriterijume K1–K5 iz `mvp_kriterijumi.md`: odluka je **MVP** ako blokira bar jedan use case koji prolazi ≥2 kriterijuma, inače **Later**. Preporuke u koloni „Opcije" oslanjaju se na `popis.md` i `funkcionalnosti.md`.
+Ovo su pitanja koja još nisu zatvorena, a utiču na to koji scenariji ulaze u MVP. Svaka odluka navodi šta blokira (preko use case ID-eva iz `SAIFA_use_cases_final.md`), ponuđene opcije sa preporukom, i fazu. Faza se određuje po kriterijumima K1–K5 iz `mvp_kriterijumi.md`: odluka je **MVP** ako blokira bar jedan use case koji prolazi ≥2 kriterijuma, inače **Later**.
 
-| ID | Odluka | Koji use case blokira | Opcije | MVP ili Later |
-| --- | --- | --- | --- | --- |
-| OD-1 | Da li uvesti zasebno terminalno stanje `rejected` (konačno odbijen, bez ponovnog slanja) različito od `draft` (vraćen na doradu), da audit zabeleži odbijanje? (use case red 429) | „Pregled i odluka o objavi dataseta" (trenutno „Odbij" i „Vrati na doradu" oba vode u `draft`); nedoslednost sa „Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije" koji već koristi stanje `Odbijen` | (a) zadržati jedinstveno `draft` za oba ishoda (trenutno stanje); (b) uvesti zasebno terminalno `rejected` ≠ `draft`, sa razdvojenim granama *preporučeno* — usklađuje dataset-review sa model-review tokom i daje auditu trag o odbijanju (`popis.md` sek. 11: audit pokriva sve operacije) | Later (blokira samo review/approval tok — Pilot use case) |
-| OD-2 | Da li u MVP uvesti masovno podešavanje vidljivosti kataloga (grupna selekcija, grupna primena, izveštaj o preskočenima) kao zaseban use-case? (use case red 454, „ODLUKA 5") | Ne blokira postojeći scenario; otvara potrebu za novim use-case-om „Masovno podešavanje vidljivosti kataloga" (pojedinačno „Skidanje javnog resursa sa kataloga" radi i bez njega) | (a) ne uvoditi u MVP — pojedinačno skidanje dovoljno za moderaciju *preporučeno* (`popis.md` vodeći princip: ne graditi bez potrebe; `funkcionalnosti.md` ne navodi masovnu moderaciju); (b) modelovati zaseban use-case sa sopstvenim ekranom i logikom | Later (nema MVP use case-a koji prolazi ≥2 kriterijuma) |
-| OD-3 | Serving model: deljeni upravljani serving pool (korisnik samo poziva gateway) ili dedicated/self-service deploj (korisnik diže sopstveni endpoint)? (use case red 480 i 534) | „Pozivanje modela (REST API ili Jupyter sveska)", „Pokretanje batch inference posla nad datasetom", „Deploy sopstvenog modela kao inference endpoint", „Zamena verzije modela na endpointu bez prekida" | (a) deljeni upravljani pool *preporučeno* — `funkcionalnosti.md` 2 (MVP „basic, 1 serving"), serving endpoint interan i nedostupan korisniku; referentni stack (Themelio/GRNET) tretira deploj velikih modela kao odobren platformski servis (red 540); (b) self-service/dedicated deploj; (c) hibrid: deljeni pool u MVP + self-service iza feature flag-a kasnije | MVP (blokira „Pozivanje modela" — K1+K2+K4) |
-| OD-4 | Po čemu se meri „veličina posla" i gde je prag rutiranja Kubernetes ↔ SLURM? (use case red 498) | „Pokretanje batch inference posla nad datasetom" (korak 7), „Pokretanje računski zahtevnog posla" (korak 6) | (a) numerički prag po procenjenim GPU satima / veličini ulaza (zahteva definiciju praga); (b) rutiranje po tipu posla — interaktivno/kratko → Kubernetes GPU pool, batch/veliko → SLURM *preporučeno* (`popis.md` sek. 15 decision tree); (c) korisnik bira između dopuštenih klastera (uz compute-to-data ograničenje koje fiksira klaster). Vezano za otvoreno pitanje rutiranja iz `popis.md` sek. 5 | MVP (blokira „Pokretanje računski zahtevnog posla" — K1+K2+K4) |
-| OD-5 | Da li se uvode korisnički podlimiti kvote ili samo budžet institucije uz atribuciju potrošnje po korisniku u logovima? (use case red 528) | „Podešavanje rate limitinga (kvote)", „Pozivanje modela" (provera kvote, korak 4), „Pokretanje batch inference posla nad datasetom" (korak 5); povezano sa „Raspodela kvote članu organizacije", „Zahtev za povećanje kvote" | (a) samo budžet institucije (afilijacija → kvota) uz atribuciju po korisniku u logovima — jednostavnije (`popis.md` sek. 8); (b) institucija + korisnički podlimiti, svi nivoi i prozori se nezavisno evaluiraju *preporučeno* — ostali use case-ovi već modeluju ličnu kvotu člana („prebaci iznos iz pool-a organizacije na ličnu kvotu člana") | MVP (blokira „Pozivanje modela" / rate limiting iz DoD funkc. 2 — K5+K3) |
-| OD-6 | Da li self-service deploj modela kao endpoint uopšte postoji u MVP-u, i pod kojim uslovima (odobrenje administratora; pravilo da endpoint nije vidljiviji od modela)? (use case red 540) | „Deploy sopstvenog modela kao inference endpoint" | (a) ne u MVP — deploj ostaje odobren platformski servis nad deljenim pool-om *preporučeno* (napomena 540: referentni stack, deploj je platformski servis; nije u `funkcionalnosti.md`/`popis.md`); (b) self-service uz obavezno odobrenje administratora + endpoint ne vidljiviji od modela; (c) self-service samo uz proveru kvote/kapaciteta | Later (napomena eksplicitno: „kandidat za kasniju fazu, ne za MVP") |
-| OD-7 | Kome pripada serving lifecycle (deploj + zamena verzije — istom akteru) i ko proverava API-kompatibilnost nove verzije (automatski vs ručno)? (use case red 564) | „Zamena verzije modela na endpointu bez prekida" | (a) ceo serving lifecycle pripada istom akteru *preporučeno* (napomena 564: nedosledno je da deploj radi korisnik a zamenu administrator); za API-kompatibilnost: (b) automatska provera uz deklarisanu ulazno/izlaznu šemu po verziji modela *preporučeno* (`popis.md` sek. 12: obavezni metapodaci po verziji) ili (c) ručna provera (administrator zna) | Later (zavisi od OD-3; vezan za deploj koji je Later) |
-| OD-8 | Da li vidljivost resursa u katalogu već uračunava ABAC atribute korisnika (resurs koji korisnik ne sme da koristi se ne prikazuje) ili se ABAC proverava tek pri akciji? (use case red 821, „ABAC vidljivosti") | „Fine-tuning nad osetljivim podacima koji ne napuštaju kontrolisano okruženje" (mesto napomene), „Pretraga i filtriranje kataloga resursa", „Pozivanje modela" (A2 ABAC provera) | (a) vidljivost uračunava ABAC + provera i pri akciji (defense-in-depth) *preporučeno* (`funkcionalnosti.md` 7 DoD: „sektorski filter nikad ne propusti neodobren resurs"; `popis.md` sek. 13: pretraga filtrira po ACL-u); (b) katalog prikazuje resurs, ABAC se proverava tek pri akciji (rizik otkrivanja postojanja); (c) osetljivi resursi skriveni, ostali vidljivi uz proveru pri akciji | MVP (blokira ACL/sektorski filter MVP kataloga — K5+K3) |
-| OD-9 | Ponašanje experiment trackinga kad je alat nedostupan preko delimično izolovane veze ka klasteru tokom posla? (use case red 841) | „Pregled i poređenje eksperimenata (experiment tracking)"; posredno „Promocija `run`-a u verziju registrovanog modela" | (a) alat koji buffer-uje i po povratku veze sinhronizuje beleženje *preporučeno* (`funkcionalnosti.md` 3: ovo je eliminacioni kriterijum za izbor MLflow-a — mora da radi preko veze ka klasteru); (b) `run` ostaje delimičan uz oznaku, bez naknadne sinhronizacije | Later (blokira use case sa 1 kriterijumom K2 — Pilot) |
-| OD-10 | Da li se verzija modela sme sačuvati sa nepotpunim lineage-om (lineage politika)? (use case red 880) | „Dodavanje nove verzije postojećeg modela" (grana A1); posredno „Registracija istreniranog artefakta kao modela (verzija 1)" | (a) dozvoliti snimanje uz oznaku `lineage: nepotpun` u draftu, obavezna dopuna pre objave *preporučeno* — konzistentno sa „Registracija ... verzija 1" koja već koristi `lineage: nepotvrđen` (`popis.md` sek. 12: lineage obavezan pre objave); (b) blokirati snimanje dok se lineage ne dopuni | Later (governance refinement; blokira samo granu A1, postoji bezbedan default) |
-| OD-11 | Da li rollback servisnog aliasa dira živu serviranu instancu ili samo pokazivač u registru? (use case red 960) | „Vraćanje servisnog aliasa na prethodnu verziju" | (a) rollback menja samo alias/pokazivač u registru, ne dira živu instancu *preporučeno* za MVP (rezultat use case-a: „nijedno lifecycle stanje nije promenjeno"; self-service deployment nije u MVP); (b) rollback prebacuje i živu serviranu instancu (zahteva da model deployment bude u MVP) | Later (zavisi od OD-3/OD-6; vezan za deployment koji je Later) |
-| OD-12 | Da li leaderboard sme da meša rezultate sa različitih verzija benchmarka? (use case red 1018) | „Objava leaderboard-a sa verzionisanjem benchmarka" | (a) ne dozvoliti mešanje — jedan leaderboard = jedna verzija benchmarka *preporučeno* (use case pretpostavka; `funkcionalnosti.md` 10: „objava po verziji benchmarka"); (b) dozvoliti mešanje uz jasnu oznaku verzije po redu | Later (leaderboard je Pilot — `funkcionalnosti.md` 10) |
+## Pregled
+
+| ID | Pitanje | Faza |
+| --- | --- | --- |
+| OD-1 | Zaseban status `rejected` (≠ `draft`) za odbijene resurse? | Later |
+| OD-2 | Masovno podešavanje vidljivosti kataloga kao zaseban use case? | Later |
+| OD-3 | Serving: deljeni pool ili self-service deploy? | MVP |
+| OD-4 | Prag rutiranja Kubernetes ↔ SLURM? | MVP |
+| OD-5 | Korisnički podlimiti kvote ili samo budžet institucije? | MVP |
+| OD-6 | Postoji li self-service deploj modela u MVP-u? | Later |
+| OD-7 | Vlasništvo serving lifecycle-a i provera API-kompatibilnosti? | Later |
+| OD-8 | Vidljivost kataloga uračunava ABAC ili tek pri akciji? | MVP |
+| OD-9 | Experiment tracking preko delimično izolovane veze? | Later |
+| OD-10 | Sme li se verzija modela sačuvati sa nepotpunim lineage-om? | Later |
+| OD-11 | Rollback aliasa dira živu instancu ili samo pokazivač? | Later |
+| OD-12 | Sme li leaderboard da meša verzije benchmarka? | Later |
+
+---
+
+### OD-1 — Status „odbijen" za resurse
+
+**Pitanje:** Da li uvesti zasebno terminalno stanje `rejected` (odbijen, bez ponovnog slanja), različito od `draft` (vraćen na doradu)?
+**Blokira:** CAT-UC-004 (sada „Odbij" i „Vrati na doradu" oba vode u `draft`); nedosledno sa MOD-UC-011 koji već koristi stanje „Odbijen".
+**Opcije:**
+- (a) zadržati jedinstveno `draft` za oba ishoda (trenutno stanje);
+- (b) **uvesti zaseban `rejected` ≠ `draft`** — *preporuka*: usklađuje dataset-review sa model-review tokom i ostavlja auditu trag o odbijanju.
+
+**Faza:** Later (blokira samo review/approval tok, koji je ionako Pilot).
+
+---
+
+### OD-2 — Masovno podešavanje vidljivosti kataloga
+
+**Pitanje:** Da li u MVP uvesti grupno skidanje/podešavanje vidljivosti (selekcija više resursa, grupna primena, izveštaj o preskočenima)?
+**Blokira:** ne blokira postojeći tok — pojedinačno skidanje (CAT-UC-005) radi i bez ovoga; otvara potrebu za novim use case-om.
+**Opcije:**
+- (a) **ne uvoditi u MVP** — pojedinačno skidanje dovoljno za moderaciju (*preporuka*);
+- (b) modelovati zaseban use case sa svojim ekranom i logikom.
+
+**Faza:** Later.
+
+---
+
+### OD-3 — Serving model
+
+**Pitanje:** Deljeni upravljani serving pool (korisnik samo poziva gateway) ili dedicated/self-service deploj (korisnik diže sopstveni endpoint)?
+**Blokira:** INF-UC-001, INF-UC-002, INF-UC-004, INF-UC-005.
+**Opcije:**
+- (a) **deljeni upravljani pool** — *preporuka*: `funkcionalnosti.md` 2 predviđa MVP „1 serving", endpoint je interan i nedostupan korisniku;
+- (b) self-service/dedicated deploj;
+- (c) hibrid: deljeni pool u MVP, self-service kasnije iza feature flag-a.
+
+**Faza:** MVP (nadređena odluka — utiče na OD-6, OD-7, OD-11).
+
+---
+
+### OD-4 — Prag rutiranja Kubernetes ↔ SLURM
+
+**Pitanje:** Po čemu se meri „veličina posla" i gde je prag za izbor klastera?
+**Blokira:** INF-UC-002, AIF-UC-001.
+**Opcije:**
+- (a) numerički prag (procenjeni GPU sati / veličina ulaza) — traži definiciju praga;
+- (b) **rutiranje po tipu posla** — interaktivno/kratko → Kubernetes GPU pool, batch/veliko → SLURM (*preporuka*, `popis.md` sek. 15);
+- (c) korisnik bira između dopuštenih klastera (uz compute-to-data ograničenje).
+
+**Faza:** MVP.
+
+---
+
+### OD-5 — Nivoi kvote
+
+**Pitanje:** Uvode li se korisnički podlimiti kvote ili samo budžet institucije uz atribuciju potrošnje po korisniku?
+**Blokira:** INF-UC-003, INF-UC-001, INF-UC-002; povezano sa ORG-UC-010 i AIF-UC-005.
+**Opcije:**
+- (a) samo budžet institucije + atribucija po korisniku u logovima (jednostavnije);
+- (b) **institucija + korisnički podlimiti**, gde svaki nivo i prozor moraju nezavisno da prođu — *preporuka*: drugi scenariji već modeluju ličnu kvotu člana.
+
+**Faza:** MVP.
+
+---
+
+### OD-6 — Self-service deploj u MVP-u
+
+**Pitanje:** Postoji li self-service deploj modela kao endpoint u MVP-u i pod kojim uslovima?
+**Blokira:** INF-UC-004.
+**Opcije:**
+- (a) **ne u MVP** — deploj ostaje odobren platformski servis nad deljenim pool-om (*preporuka*);
+- (b) self-service uz obavezno odobrenje administratora + pravilo da endpoint nije vidljiviji od modela;
+- (c) self-service samo uz proveru kvote/kapaciteta.
+
+**Faza:** Later (zavisi od OD-3).
+
+---
+
+### OD-7 — Vlasništvo serving lifecycle-a
+
+**Pitanje:** Kome pripada serving lifecycle (deploj + zamena verzije) i ko proverava API-kompatibilnost nove verzije?
+**Blokira:** INF-UC-005.
+**Opcije:**
+- ceo serving lifecycle treba da pripadne **istom akteru** (*preporuka*);
+- za API-kompatibilnost: (b) **automatska provera** uz deklarisanu ulazno/izlaznu šemu po verziji (*preporuka*) ili (c) ručna provera.
+
+**Faza:** Later (zavisi od OD-3).
+
+---
+
+### OD-8 — ABAC i vidljivost kataloga
+
+**Pitanje:** Da li vidljivost resursa u katalogu već uračunava ABAC atribute (resurs koji korisnik ne sme da koristi se ne prikazuje) ili se ABAC proverava tek pri akciji?
+**Blokira:** MOD-UC-003, CAT-UC-002, INF-UC-001.
+**Opcije:**
+- (a) **vidljivost uračunava ABAC + provera i pri akciji** (defense-in-depth) — *preporuka*: `funkcionalnosti.md` 7 traži da sektorski filter nikad ne propusti neodobren resurs;
+- (b) katalog prikazuje resurs, ABAC tek pri akciji (rizik otkrivanja postojanja);
+- (c) osetljivi skriveni, ostali vidljivi uz proveru pri akciji.
+
+**Faza:** MVP.
+
+---
+
+### OD-9 — Experiment tracking preko izolovane veze
+
+**Pitanje:** Šta radi experiment tracking kad je alat nedostupan preko delimično izolovane veze ka klasteru tokom posla?
+**Blokira:** MOD-UC-004; posredno MOD-UC-007.
+**Opcije:**
+- (a) **alat koji buffer-uje i po povratku veze sinhronizuje** — *preporuka*: ovo je eliminacioni kriterijum za izbor MLflow-a (`funkcionalnosti.md` 3);
+- (b) `run` ostaje delimičan uz oznaku, bez naknadne sinhronizacije.
+
+**Faza:** Later.
+
+---
+
+### OD-10 — Lineage politika
+
+**Pitanje:** Sme li se verzija modela sačuvati sa nepotpunim lineage-om?
+**Blokira:** MOD-UC-006 (grana nepotpunog lineage-a); posredno MOD-UC-005.
+**Opcije:**
+- (a) **dozvoliti snimanje uz oznaku `lineage: nepotpun` u draftu, uz obaveznu dopunu pre objave** — *preporuka*: konzistentno sa MOD-UC-005 koji već koristi `lineage: nepotvrđen`;
+- (b) blokirati snimanje dok se lineage ne dopuni.
+
+**Faza:** Later.
+
+---
+
+### OD-11 — Šta dira rollback aliasa
+
+**Pitanje:** Da li rollback servisnog aliasa dira živu serviranu instancu ili samo pokazivač u registru?
+**Blokira:** MOD-UC-010.
+**Opcije:**
+- (a) **rollback menja samo alias/pokazivač u registru, ne dira živu instancu** — *preporuka* za MVP (self-service deployment ionako nije u MVP);
+- (b) rollback prebacuje i živu serviranu instancu (zahteva da model deployment bude u MVP).
+
+**Faza:** Later (zavisi od OD-3 i OD-6).
+
+---
+
+### OD-12 — Mešanje verzija benchmarka na leaderboard-u
+
+**Pitanje:** Sme li leaderboard da meša rezultate sa različitih verzija benchmarka?
+**Blokira:** MOD-UC-013.
+**Opcije:**
+- (a) **ne dozvoliti mešanje** — jedan leaderboard = jedna verzija benchmarka (*preporuka*: inače poređenje gubi smisao);
+- (b) dozvoliti mešanje uz jasnu oznaku verzije po redu.
+
+**Faza:** Later.
+
+---
 
 ## Zavisnosti između odluka
 
-Navedene su samo zavisnosti gde zatvaranje jedne odluke uslovljava drugu:
-
-- **OD-3 → OD-6, OD-7, OD-11.** OD-3 (serving model) je nadređena odluka. OD-6 (self-service deploj) ima smisla samo ako se OD-3 razreši u korist dedicated/self-service servinga; OD-7 (vlasništvo serving lifecycle-a i provera API-kompatibilnosti) zavisi od istog izbora; OD-11 (da li rollback dira živu instancu) zavisi od toga koliko model deployment ulazi u MVP, što direktno proizlazi iz OD-3.
-- **OD-6 → OD-11.** OD-11 dodatno zavisi od OD-6: pitanje da li rollback dira živu serviranu instancu postoji samo ako self-service deploj endpointa uopšte postoji.
+- **OD-3 je nadređena.** Od njenog ishoda zavise OD-6 (ima li self-service deploja), OD-7 (vlasništvo serving lifecycle-a) i OD-11 (da li rollback dira živu instancu).
+- **OD-6 → OD-11.** Pitanje da li rollback dira živu instancu postoji samo ako self-service deploj endpointa uopšte postoji.

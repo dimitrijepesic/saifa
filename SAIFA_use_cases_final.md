@@ -1,5 +1,55 @@
+# SAIFA AI Gateway — Katalog use case-ova
+
+Ovaj dokument je izvor istine o tome **šta sve platforma radi**: svaki scenario je jedna moguća funkcionalnost, sa akterom, tokom i ishodom. Iz njega se vidi i **šta se može pokriti gotovim alatom** (vidi `SAIFA_gotove_komponente_po_slojevima.md` za „gotovo vs custom" po sloju i `popis.md` za sve razmatrane opcije). Faza isporuke i MVP se ne određuju ovde nego u `mvp_kriterijumi.md`, a otvorena pitanja u `otvorene_odluke.md`.
+
+Svaki use case ima stabilan ID (npr. `IAM-UC-001`) koji se ne menja. Svi ostali dokumenti referenciraju use case preko ID-a, nikada preko naslova ili broja reda. Use case je naslov trećeg nivoa čiji je tekst ID, pa unutar dokumenta link `#iam-uc-001` vodi na scenario.
+
+## Šema ID-eva
+
+| Prefiks | Domen | Sekcija |
+| --- | --- | --- |
+| IAM-UC | Prijava, API ključevi, sesije, uloge/ABAC | 1 |
+| ORG-UC | Organizacije, predstavnici, timovi/projekti, raspodela kvote | 1, 4, 7, 9 |
+| ADM-UC | Administracija naloga, kvota i politika platforme | 1, 9 |
+| CAT-UC | Katalog (discovery, objava, moderacija) i datasetovi | 2, 6 |
+| INF-UC | Inference, serving, endpointi | 3, 9 |
+| AIF-UC | AI factory poslovi (pokretanje, status, rezultati, zaustavljanje) | 4 |
+| MOD-UC | Model lifecycle i registry (trening, eval, verzije, objava) | 5 |
+| EDU-UC | Edukacija, kursevi, lab vežbe | 8 |
+| OBS-UC | Monitoring, alarmi, audit, istorija | 9 |
+| USG-UC | Praćenje potrošnje resursa | 9 |
+| FED-UC | Federacija sa Pharos/IT4LIA | 10 |
+
+## Konvencije (da se ne ponavlja u svakom scenariju)
+
+Sledeće važi za sve scenarije osim ako je kod konkretnog use case-a naglašeno drugačije:
+
+- **Identitet:** „prijavljen korisnik" znači aktivnu Keycloak sesiju; uloge i ABAC atributi se proveravaju pri svakoj akciji.
+- **Standardni alternativni tokovi** se podrazumevaju i navode se samo kada odstupaju: *Odustajanje* (korisnik napusti formu pre potvrde → ništa se ne kreira/menja), *Nedostaju obavezna polja* (sistem označi prazna polja i ne nastavlja), *Nema dozvole* (akcija skrivena ili vraća grešku autorizacije).
+- **Audit:** svaka akcija koja menja stanje upisuje se u append-only audit log (akter, vreme, resurs); ne ponavlja se u svakom „Rezultatu".
+- **⚠ napomene** označavaju mesto koje zavisi od otvorene odluke iz `otvorene_odluke.md`.
+
+## Indeks po sekcijama
+
+| Sekcija | Use case ID-evi |
+| --- | --- |
+| 1. Pristup platformi i nalozi | IAM-UC-001…006, ORG-UC-001…005, ADM-UC-001…003 |
+| 2. Katalog resursa | CAT-UC-001…005 |
+| 3. Inference i korišćenje modela | INF-UC-001…005 |
+| 4. AI factory i pokretanje poslova | AIF-UC-001…007, ORG-UC-006 |
+| 5. Model lifecycle | MOD-UC-001…013 |
+| 6. Upravljanje datasetovima | CAT-UC-006…010 |
+| 7. Kolaboracija i timski rad | ORG-UC-007…009 |
+| 8. Edukacija i kursevi | EDU-UC-001…009 |
+| 9. Administracija, monitoring i usklađenost | INF-UC-006, OBS-UC-001…004, USG-UC-001, ORG-UC-010, ADM-UC-004…007 |
+| 10. Federacija (Pharos, IT4LIA) | FED-UC-001…004 |
+
+---
+
 ## 1. Pristup platformi i nalozi
 
+
+### IAM-UC-001
 
 **Naziv:** Registracija lokalnim nalogom
 **Akter:** Anonimni posetilac
@@ -25,6 +75,8 @@ A5. **Institucijski korisnik pokušava lokalnu registraciju** — u koraku 3: ko
 
 
 
+### IAM-UC-002
+
 **Naziv:** Prijava institucionalnim SSO-om (eduGAIN/AMRES)
 **Akter:** Anonimni posetilac
 **Preduslov:** Korisnik nije prijavljen; njegova matična institucija je član AMRES/eduGAIN federacije i ima aktivan institucionalni nalog.
@@ -49,6 +101,8 @@ A5. **Korisnik odustane na stranici institucije** — u koraku 4: korisnik zatvo
 
 
 
+### IAM-UC-003
+
 **Naziv:** Prijava EuroHPC identitetom
 **Akter:** Anonimni posetilac
 **Preduslov:** Korisnik nije prijavljen; ima aktivan MyAccessID nalog registrovan na EuroHPC korisničkom portalu.
@@ -72,6 +126,8 @@ A5. **Korisnik odustane na MyAccessID stranici** — u koraku 3: korisnik klikne
 
 
 
+### IAM-UC-004
+
 **Naziv:** Kreiranje i upravljanje API ključem
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima ulogu sa pravom na programski pristup (inference i/ili pokretanje poslova).
@@ -93,6 +149,8 @@ A4. **Odustajanje** — u koraku 4 ili 5: korisnik napusti formu; nijedan ključ
 **Rezultat:** Korisnik ima aktivan API ključ za programski pristup platformi (REST/SDK), sa izabranim scope-om i rokom važenja; izdavanje, rotacija i opoziv ključa zabeleženi su u audit logu.
 
 
+
+### ORG-UC-001
 
 **Naziv:** Registracija organizacije i zahtev za odobrenje
 **Akter:** Predstavnik organizacije
@@ -116,6 +174,8 @@ A4. **Korisnik odustane** — u bilo kom koraku pre slanja: klikne „Otkaži" i
 **Rezultat:** U sistemu postoji organizacija u statusu **`Na čekanju`** sa svim unetim podacima i priloženom dokumentacijom; platform administrator ima notifikaciju o zahtevu i može pristupiti pregledu i odlučivanju; predstavnik čeka emailom potvrdu o ishodu.
 
 
+
+### ORG-UC-002
 
 **Naziv:** Dodavanje člana u organizaciju
 **Akter:** Predstavnik organizacije
@@ -142,6 +202,8 @@ A5. **Korisnik odustane** — u bilo kom koraku pre potvrde: klikne „Otkaži";
 
 
 
+### ORG-UC-003
+
 **Naziv:** Uklanjanje člana iz organizacije
 **Akter:** Predstavnik organizacije
 **Preduslov:** Predstavnik je prijavljen i ima aktivnu organizaciju; osoba koja se uklanja je trenutni član te organizacije.
@@ -163,6 +225,8 @@ A4. **Predstavnik odustane** — u koraku 4: klikne „Otkaži" u dijalogu; list
 **Rezultat:** Osoba više nije član organizacije; njena dodeljena kvota je vraćena u pool organizacije; nalog joj ostaje aktivan kao Nezavisni korisnik i može se prijavljivati na platformu; uklanjanje je zabeleženo u audit logu sa identitetom predstavnika i vremenskom oznakom.
 
 
+
+### ORG-UC-004
 
 **Naziv:** Odobravanje ili odbijanje registracije organizacije
 **Akter:** Platform administrator
@@ -186,6 +250,8 @@ A4. **Lista zahteva je prazna** — u koraku 1: sistem prikaže poruku „Nema z
 **Rezultat:** Organizacija je aktivna u sistemu sa dodeljenom ukupnom kvotom; predstavnik organizacije ima odgovarajuću ulogu i može početi da dodaje članove i raspodeljuje kvotu; ishod (odobrenje ili odbijanje) je zabeležen u audit logu.
 
 
+
+### ORG-UC-005
 
 **Naziv:** Dodeljivanje uloge predstavnika organizacije
 **Akter:** Platform administrator
@@ -211,6 +277,8 @@ A4. **Administrator odustane** — u koraku 6: klikne „Otkaži" u dijalogu za 
 
 
 
+### ADM-UC-001
+
 **Naziv:** Kreiranje naloga od strane administratora
 **Akter:** Platform administrator
 **Preduslov:** Platform administrator je prijavljen; zna email adresu i osnovne podatke osobe za koju kreira nalog.
@@ -233,6 +301,8 @@ A4. **Administrator odustane** — u bilo kom koraku pre slanja: klikne „Otka�
 **Rezultat:** Nov nalog postoji u sistemu sa dodeljenom ulogom i atributima; korisnik je dobio email sa uputstvima za prvu prijavu; kreiranje naloga je zabeleženo u audit logu sa identitetom administratora i vremenskom oznakom.
 
 
+
+### ADM-UC-002
 
 **Naziv:** Uređivanje naloga od strane administratora
 **Akter:** Platform administrator
@@ -258,6 +328,8 @@ A4. **Administrator odustane** — u bilo kom koraku pre čuvanja: klikne **„O
 
 
 
+### ADM-UC-003
+
 **Naziv:** Deaktivacija naloga od strane administratora
 **Akter:** Platform administrator
 **Preduslov:** Platform administrator je prijavljen; nalog koji se deaktivira postoji i trenutno je aktivan.
@@ -281,6 +353,8 @@ A4. **Nalog je već neaktivan** — u koraku 3: dugme **„Deaktiviraj nalog"** 
 **Rezultat:** Nalog je neaktivan; korisnik se ne može prijaviti niti koristiti platformu; njegovi resursi (modeli, datasetovi, rezultati poslova) ostaju sačuvani u sistemu i nisu obrisani; deaktivacija je zabeležena u audit logu sa identitetom administratora, vremenskom oznakom i razlogom.
 
 
+
+### IAM-UC-005
 
 **Naziv:** Dodeljivanje uloga i ABAC atributa korisniku
 **Akter:** Platform administrator
@@ -309,6 +383,8 @@ A4. **Administrator odustane** — u bilo kom koraku pre čuvanja: klikne **„O
 
 
 
+### IAM-UC-006
+
 **Naziv:** Prisilno opozivanje sesije korisnika pri bezbednosnom incidentu
 **Akter:** Platform administrator
 **Preduslov:** Platform administrator je prijavljen; korisnik čija se sesija opoziva ima aktivnu sesiju na platformi; postoji bezbednosni razlog za hitno prekidanje pristupa (sumnja na kompromitovan nalog, neovlašćen pristup, neuobičajena aktivnost).
@@ -336,6 +412,8 @@ A4. **Administrator odustane** — u koraku 6: klikne „Otkaži" u dijalogu; se
 ## 2. Katalog resursa
 
 
+### CAT-UC-001
+
 **Naziv:** Pretraga i filtriranje javnog kataloga
 **Akter:** Anonimni posetilac
 **Preduslov:** Korisnik nije prijavljen (ne postoji Keycloak sesija); ima pristup SAIFA portalu; anonimnom posetiocu su u katalogu vidljivi samo resursi sa vidljivošću `public`.
@@ -362,6 +440,8 @@ A6. **Direktan link ka nejavnom ili nepostojećem resursu** — u koraku 7: kori
 
 
 
+### CAT-UC-002
+
 **Naziv:** Pretraga i filtriranje kataloga resursa
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima ulogu koja mu daje pristup katalogu; katalog sadrži lokalne i federisane resurse.
@@ -385,6 +465,8 @@ A3. **Poništavanje filtera** — u koraku 6: korisnik odustane od suženja i iz
 
 
 
+### CAT-UC-003
+
 **Naziv:** Objava resursa u katalog uz slanje na pregled
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima dozvolu da objavljuje resurse; resurs (model ili dataset) je već otpremljen u MinIO ili registrovan kao eksterni izvor i nalazi se u stanju **`Draft`**.
@@ -404,15 +486,17 @@ A3. **Poništavanje filtera** — u koraku 6: korisnik odustane od suženja i iz
 A1. **Nedostaju obavezna polja** — u koraku 7: opis, licenca ili tag nisu popunjeni; sistem označi prazna polja i ne šalje resurs; korisnik se vraća na korak 3.
 A2. **Resurs već poslat ili objavljen** — u koraku 1: resurs je već u stanju **`Poslat`**, **`Na pregledu`** ili **`Objavljen lokalno`**; sistem ne nudi ponovnu objavu, već prikaže trenutni status; tok se prekida.
 A3. **Odustajanje** — u koraku 3 ili 5: korisnik napusti formu bez slanja; sistem sačuva uneto i resurs ostaje u stanju **`Draft`**; review se ne pokreće; resurs ostaje nevidljiv u katalogu.
-A4. **Resurs vraćen na doradu** — nakon koraka 9: recenzent odbije ili zatraži izmene; resurs se vraća u **`Draft`**, korisnik dobija notifikaciju sa komentarom i može da ponovi tok od koraka 1. → vidi: *Pregled i odluka o objavi dataseta* (za datasetove), odnosno *Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije* (za modele).
+A4. **Resurs vraćen na doradu** — nakon koraka 9: recenzent odbije ili zatraži izmene; resurs se vraća u **`Draft`**, korisnik dobija notifikaciju sa komentarom i može da ponovi tok od koraka 1. → vidi: *Pregled i odluka o objavi dataseta* (CAT-UC-004) (za datasetove), odnosno *Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije* (za modele).
 
 **Rezultat:** Resurs je u stanju **`Na pregledu`**, dodeljen nadležnom recenzentu (Data administrator ili Model reviewer), sa unetim opisom, tagovima, licencom i vidljivošću; još nije vidljiv u javnom katalogu.
 
 
 
+### CAT-UC-004
+
 **Naziv:** Pregled i odluka o objavi dataseta
 **Akter:** Data administrator
-**Preduslov:** Data administrator je prijavljen preko Keycloak-a i ima dozvolu za pregled **datasetova**; u redu za pregled postoji bar jedan **dataset** u stanju **`Na pregledu`**. Ovaj scenario pokriva isključivo datasetove — pregled i odluka o objavi **modela** obrađeni su zasebno → vidi: *Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije*.
+**Preduslov:** Data administrator je prijavljen preko Keycloak-a i ima dozvolu za pregled **datasetova**; u redu za pregled postoji bar jedan **dataset** u stanju **`Na pregledu`**. Ovaj scenario pokriva isključivo datasetove — pregled i odluka o objavi **modela** obrađeni su zasebno → vidi: *Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije* (MOD-UC-011).
 
 **Osnovni tok:**
 1. Data administrator otvori ekran **„Red za pregled"** i izabere dataset iz liste.
@@ -434,6 +518,8 @@ A4. **Odustajanje od odluke** — u koraku 5: data administrator napusti ekran b
 **Rezultat:** Dataset je u stanju **`Odobren`** (ili **`Objavljen lokalno`** ako je vidljivost `public`) i vidljiv u katalogu prema vidljivosti koju je objavljivač izabrao, sa zabeleženom odlukom data administratora (i opcionim komentarom); objavljivač je obavešten.
 
 
+
+### CAT-UC-005
 
 **Naziv:** Skidanje javnog resursa sa kataloga (moderacija)
 **Akter:** Platform administrator
@@ -459,12 +545,14 @@ A2. **Odustajanje** — u koraku 4 ili 5: administrator napusti ekran bez potvrd
 ## 3. Inference i korišćenje modela
 
 
+### INF-UC-001
+
 **Naziv:** Pozivanje modela (REST API ili Jupyter sveska)
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima ulogu sa pravom na inference; postoji model dostupan korisniku prema ulozi i ABAC atributima, podignut na deljenom serving pool-u (model je poslužen, korisnik ga ne diže sam); korisnik ima način autentikacije za izabranu ulaznu tačku — izdat API ključ za REST, ili aktivnu sesiju za svesku.
 
 **Osnovni tok:**
-1. Korisnik izabere ulaznu tačku. Za REST: sa ekrana **„Detalji resursa"** modela očita identifikator modela i URL inference endpointa, a sa ekrana **„Moji API ključevi"** kopira postojeći ključ (ili ga, ako ga nema, izda kroz **„Novi API ključ"**). Za svesku: otvori svesku (podizanje JupyterHub okruženja je zaseban tok) i pozove SAIFA SDK. → vidi: *Kreiranje i upravljanje API ključem*
+1. Korisnik izabere ulaznu tačku. Za REST: sa ekrana **„Detalji resursa"** modela očita identifikator modela i URL inference endpointa, a sa ekrana **„Moji API ključevi"** kopira postojeći ključ (ili ga, ako ga nema, izda kroz **„Novi API ključ"**). Za svesku: otvori svesku (podizanje JupyterHub okruženja je zaseban tok) i pozove SAIFA SDK. → vidi: *Kreiranje i upravljanje API ključem* (IAM-UC-004)
 2. Korisnik pošalje HTTP zahtev na inference endpoint u OpenAI-kompatibilnom formatu, sa identifikatorom modela u telu. Za REST ručno postavi API ključ u zaglavlje; za svesku SDK koristi korisnikovu sesiju/token (korisnik ne kuca ključ ručno u svesci).
 3. Sistem (API Gateway) autentifikuje zahtev i proveri ulogu i ABAC atribute korisnika za traženi model.
 4. Sistem proveri kvotu za tip zahteva `inference` kroz celu hijerarhiju — budžet institucije (nivo afilijacije) i, ako postoji, podlimit korisnika unutar institucije; zahtev prolazi samo ako nijedan nivo nije prekoračen.
@@ -483,6 +571,8 @@ A5. **Streaming odgovor** — u koraku 2 i 6: korisnik je u zahtevu tražio stre
 
 
 
+### INF-UC-002
+
 **Naziv:** Pokretanje batch inference posla nad datasetom
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima pravo na inference i na pokretanje poslova; postoji model dostupan korisniku i dataset u MinIO nad kojim korisnik ima pravo čitanja; korisnik (kroz budžet svoje institucije) ima dovoljnu kvotu za izvršavanje.
@@ -496,7 +586,7 @@ A5. **Streaming odgovor** — u koraku 2 i 6: korisnik je u zahtevu tražio stre
 6. Sistem rezerviše procenjenu kvotu za posao, da paralelni submit ne potroši isti budžet.
 7. Sistem odredi izvršno okruženje prema veličini posla (Kubernetes Job za manje poslove ili SLURM job na PARADOX/ITE za velike) i stavi posao u red.
 > ⚠ Pravilo rutiranja „prema veličini posla" nije definisano u referentnim dokumentima. Otvoreno je po čemu se meri veličina (broj redova dataseta, procenjeni GPU sati, veličina ulaza) i gde je prag K8s/SLURM. Vezati za otvoreno pitanje rutiranja između klastera (popis.md, sekcija 5).
-8. Sistem kreira zapis posla u stanju **`U redu`** i prikaže potvrdu sa identifikatorom posla. → vidi: *Praćenje statusa i logova posla*
+8. Sistem kreira zapis posla u stanju **`U redu`** i prikaže potvrdu sa identifikatorom posla. → vidi: *Praćenje statusa i logova posla* (AIF-UC-002)
 
 **Alternativni tokovi:**
 A1. **Nedostaju obavezna polja** — u koraku 5: dataset ili odredište nisu izabrani; sistem označi prazna polja i ne pokreće posao; forma zadržava već uneto i korisnik se vraća na korak 3.
@@ -507,6 +597,8 @@ A4. **Odustajanje** — u koraku 3 ili 4: korisnik napusti formu bez pokretanja;
 **Rezultat:** Kreiran je batch inference posao u stanju **`U redu`**, vezan za korisnika, model i dataset, sa rezervisanom kvotom (korak 6); posao čeka izvršavanje na Kubernetes/SLURM-u; kreiranje je upisano u audit log.
 
 
+
+### INF-UC-003
 
 **Naziv:** Podešavanje rate limitinga (kvote)
 **Akter:** Platform administrator
@@ -534,6 +626,8 @@ A3. **Vraćanje na podrazumevano** — u koraku 4: administrator izabere **„Vr
 > ⚠ **Napomena o serving modelu:** Scenariji „Deploy sopstvenog modela" i „Zamena verzije na endpointu" pretpostavljaju različite aktere i nisu međusobno usklađeni jer arhitektonska odluka o serving modelu (deljeni upravljani pool vs. self-service deploy) još nije doneta. Oba scenarija se zadržavaju kao kandidati; pre finalizacije MVP-a jedan će biti uklonjen ili prilagođen.
 
 
+### INF-UC-004
+
 **Naziv:** Deploy sopstvenog modela kao inference endpoint
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima pravo da deploy-uje modele; model je registrovan i otpremljen u MinIO i nalazi se u stanju **`Odobren`** (`approved`) ili **`Objavljen lokalno`** (`published locally`); postoji raspoloživ GPU kapacitet u serving pool-u.
@@ -557,6 +651,8 @@ A5. **Odustajanje** — u koraku 2 ili 3: korisnik napusti formu; endpoint se ne
 **Rezultat:** Model je podignut kao aktivan inference endpoint sa dodeljenim URL-om, vidljiv prema izabranoj vidljivosti (ne vidljiviji od samog modela); zauzet je GPU resurs serving pool-a; deploy je upisan u audit log.
 
 
+
+### INF-UC-005
 
 **Naziv:** Zamena verzije modela na endpointu bez prekida
 **Akter:** Platform administrator
@@ -584,6 +680,8 @@ A4. **Odustajanje** — u koraku 4: administrator ne potvrdi; nijedna promena se
 ## 4. AI factory i pokretanje poslova
 
 
+### AIF-UC-001
+
 **Naziv:** Pokretanje računski zahtevnog posla
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima pravo na pokretanje poslova; postoje ulazni resursi (model i/ili dataset u MinIO) nad kojima korisnik ima pravo pristupa; korisnik ima dodeljenu ličnu kvotu sa dovoljno preostalih resursa.
@@ -610,6 +708,8 @@ A7. **Odustajanje** — u koraku 3: korisnik napusti formu bez pokretanja; nijed
 
 
 
+### AIF-UC-002
+
 **Naziv:** Praćenje statusa i logova posla
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a; postoji bar jedan posao koji je korisnik pokrenuo, u nekom od stanja izvršavanja (**`U redu`**, **`U toku`**, **`Završen`**, **`Neuspeo`**, **`Prekinut`**).
@@ -624,13 +724,15 @@ A7. **Odustajanje** — u koraku 3: korisnik napusti formu bez pokretanja; nijed
 
 **Alternativni tokovi:**
 A1. **Posao još u redu** — u koraku 4: posao nije počeo da se izvršava; sistem prikaže poziciju u redu i procenu čekanja (ako je dostupna iz SLURM-a/scheduler-a); logovi izvršavanja još ne postoje.
-A2. **Posao neuspeo** — u koraku 6: izvršavanje se završilo greškom; sistem prikaže status **`Neuspeo`** sa porukom o grešci i poslednjim logovima; rezultata nema; korisnik može da pokrene posao ponovo iz **„Detalji posla"** sa istim parametrima, pri čemu re-run prolazi iste provere pristupa i kvote (koraci 4–6 scenarija → vidi: *Pokretanje računski zahtevnog posla*) bez ponovnog popunjavanja forme.
+A2. **Posao neuspeo** — u koraku 6: izvršavanje se završilo greškom; sistem prikaže status **`Neuspeo`** sa porukom o grešci i poslednjim logovima; rezultata nema; korisnik može da pokrene posao ponovo iz **„Detalji posla"** sa istim parametrima, pri čemu re-run prolazi iste provere pristupa i kvote (koraci 4–6 scenarija → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)) bez ponovnog popunjavanja forme.
 A3. **Kašnjenje live log streama** — u koraku 5: prikaz logova zaostaje za stvarnim izvršavanjem; sistem nastavlja da dopunjuje logove kad stignu; status posla ostaje verodostojan jer se čita iz scheduler-a, ne iz log streama.
 A4. **Posao prisilno zaustavljen spolja** — u koraku 5/6: posao je zaustavio administrator platforme (zbog stabilnosti klastera) ili je zaustavljen pri deaktivaciji naloga; sistem prikaže status **`Prekinut`** sa naznakom da zaustavljanje nije pokrenuo sam korisnik.
 
 **Rezultat:** Korisnik je video aktuelni status, potrošnju i logove posla; za završen posao ima link ka rezultatima u MinIO. Pregled ne menja stanje posla. Prekid posla od strane korisnika obrađen je u zasebnom scenariju.
 
 
+
+### AIF-UC-003
 
 **Naziv:** Preuzimanje rezultata posla
 **Akter:** Prijavljen korisnik
@@ -653,6 +755,8 @@ A4. **Prekid preuzimanja** — u koraku 4: veza se prekine tokom preuzimanja vel
 
 
 
+### AIF-UC-004
+
 **Naziv:** Prijem notifikacije o ishodu posla
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik ima bar jedan pokrenut posao; u podešavanjima profila notifikacije su uključene (in-app podrazumevano, email opciono).
@@ -672,6 +776,8 @@ A3. **Notifikacija pročitana** — u koraku 4: korisnik označi notifikaciju ka
 **Rezultat:** Korisnik je obavešten o ishodu posla kroz in-app notifikaciju (i email ako je uključen) i iz nje može direktno otvoriti detalje posla. Stanje posla nije promenjeno notifikacijom.
 
 
+
+### AIF-UC-005
 
 **Naziv:** Zahtev za povećanje kvote
 **Akter:** Prijavljen korisnik
@@ -695,6 +801,8 @@ A3. **Odustajanje** — u koraku 4 ili 5: korisnik napusti formu bez slanja; nij
 
 
 
+### AIF-UC-006
+
 **Naziv:** Pokretanje posla iz zaključanog šablona (student)
 **Akter:** Student
 **Preduslov:** Student je prijavljen preko Keycloak-a i ima ulogu Student; postoji bar jedan zaključan šablon posla dodeljen njegovom kursu/grupi; student ima dodeljenu ličnu kvotu sa dovoljno preostalih resursa za izvršavanje; izlazni parametri i resursi šablona su unapred fiksirani i student ih ne menja.
@@ -712,9 +820,11 @@ A2. **Obavezno polje nije popunjeno** — u koraku 3: dozvoljeno polje (npr. ula
 A3. **Šablon povučen ili istekao** — u koraku 1: šablon više nije aktivan (mentor ga povukao ili je rok kursa istekao); sistem prikaže da šablon nije dostupan i uklanja ga iz liste.
 A4. **Odustajanje** — u koraku 3: student napusti ekran bez pokretanja; nijedan posao se ne kreira.
 
-**Rezultat:** Kreiran je posao iz zaključanog šablona u stanju **`U redu`**, vezan za studenta, sa rezervisanom ličnom kvotom i parametrima u granicama koje šablon dozvoljava; posao čeka izvršavanje na unapred određenom okruženju; dalji životni ciklus prati se → vidi: *Praćenje statusa i logova posla*; kreiranje je upisano u audit log. Student nije imao pristup pisanju skripte niti izboru klastera.
+**Rezultat:** Kreiran je posao iz zaključanog šablona u stanju **`U redu`**, vezan za studenta, sa rezervisanom ličnom kvotom i parametrima u granicama koje šablon dozvoljava; posao čeka izvršavanje na unapred određenom okruženju; dalji životni ciklus prati se → vidi: *Praćenje statusa i logova posla* (AIF-UC-002); kreiranje je upisano u audit log. Student nije imao pristup pisanju skripte niti izboru klastera.
 
 
+
+### ORG-UC-006
 
 **Naziv:** Odluka o zahtevu člana za povećanje kvote
 **Akter:** Predstavnik organizacije
@@ -738,6 +848,8 @@ A4. **Odustajanje** — u koraku 4 ili 5: predstavnik napusti ekran bez potvrde;
 **Rezultat:** Zahtev je u stanju **`Odobren`** (uz prenos kvote iz pool-a organizacije na ličnu kvotu člana) ili **`Odbijen`** (bez promene kvote); član je obavešten o ishodu; odluka i prenos kvote upisani su u audit log.
 
 
+
+### AIF-UC-007
 
 **Naziv:** Prisilno zaustavljanje posla koji ugrožava stabilnost klastera
 **Akter:** Platform administrator
@@ -764,6 +876,8 @@ A3. **Odustajanje** — u koraku 5 ili 6: administrator napusti ekran bez potvrd
 ## 5. Model lifecycle — treniranje, fine-tuning, evaluacija, registracija
 
 
+### MOD-UC-001
+
 **Naziv:** Treniranje modela nad datasetom iz kataloga
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen i ima dozvolu pristupa odabranom datasetu; korisnik ima dovoljnu kvotu (GPU sati) za pokretanje posla.
@@ -773,16 +887,18 @@ A3. **Odustajanje** — u koraku 5 ili 6: administrator napusti ekran bez potvrd
 2. Korisnik na ekranu **„Detalji resursa"** izabere akciju **„Pokreni trening"**.
 3. Sistem prikaže formu **„Konfiguracija treninga"** sa baznim modelom/arhitekturom, hiperparametrima i izborom okruženja izvršavanja (PARADOX/ITE ili GPU pool).
 4. Korisnik popuni konfiguraciju i klikne **„Pošalji posao"**.
-5. Posao se kreira i prati kako je opisano u scenariju za pokretanje računski zahtevnog posla (provera kvote i dozvola, kreiranje posla, ekran **„Status posla"**, prelaz **`U redu`** → **`U toku`**, live logovi i napredak). → vidi: *Pokretanje računski zahtevnog posla*
+5. Posao se kreira i prati kako je opisano u scenariju za pokretanje računski zahtevnog posla (provera kvote i dozvola, kreiranje posla, ekran **„Status posla"**, prelaz **`U redu`** → **`U toku`**, live logovi i napredak). → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 6. Po prelasku posla u **`Završen`**, Sistem upiše artefakte treninga u artefakt skladište, poveže ih sa zapisom posla i sa automatski uhvaćenim lineage-om (dataset, konfiguracija, izvršni job), pa pošalje notifikaciju.
 
 **Alternativni tokovi:**
 A1. **Nema dozvole za dataset** — u koraku 1: dataset se ne pojavljuje u rezultatima ili je akcija **„Pokreni trening"** onemogućena; tok se prekida pre slanja.
-A2. **Posao ne prođe proveru kvote ili padne / korisnik ga prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla (stanja **`Neuspeo`** / **`Zaustavljanje u toku`** → **`Prekinut`**). Posledica za ovaj tok: ako posao nije **`Završen`**, artefakti se ne upisuju i model se ne kreira; eventualni delimični checkpoint ostaje vezan za zapis posla kao artefakt posla, ne kao model. → vidi: *Pokretanje računski zahtevnog posla*
+A2. **Posao ne prođe proveru kvote ili padne / korisnik ga prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla (stanja **`Neuspeo`** / **`Zaustavljanje u toku`** → **`Prekinut`**). Posledica za ovaj tok: ako posao nije **`Završen`**, artefakti se ne upisuju i model se ne kreira; eventualni delimični checkpoint ostaje vezan za zapis posla kao artefakt posla, ne kao model. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 
-**Rezultat:** Posao treninga je u stanju **`Završen`**; artefakti modela su u artefakt skladištu, povezani sa zapisom posla i automatskim lineage-om (dataset, konfiguracija, job). Model još nije registrovan → vidi: *Registracija istreniranog artefakta kao modela (verzija 1)*.
+**Rezultat:** Posao treninga je u stanju **`Završen`**; artefakti modela su u artefakt skladištu, povezani sa zapisom posla i automatskim lineage-om (dataset, konfiguracija, job). Model još nije registrovan → vidi: *Registracija istreniranog artefakta kao modela (verzija 1)* (MOD-UC-005).
 
 
+
+### MOD-UC-002
 
 **Naziv:** Fine-tuning modela nad sopstvenim labeled datasetom
 **Akter:** Prijavljen korisnik
@@ -793,17 +909,19 @@ A2. **Posao ne prođe proveru kvote ili padne / korisnik ga prekine** — obrađ
 1. Prijavljen korisnik otvori **„Katalog"**, nađe bazni model i na **„Detalji resursa"** izabere **„Fine-tuning"**.
 2. Sistem prikaže formu **„Konfiguracija fine-tuning-a"** sa izborom sopstvenog dataseta, strategijom treninga (pun fine-tuning ili PEFT — LoRA/QLoRA) i hiperparametrima.
 3. Korisnik izabere dataset, strategiju i parametre, pa klikne **„Pošalji posao"**.
-4. Posao se kreira i prati kako je opisano u scenariju za pokretanje računski zahtevnog posla. → vidi: *Pokretanje računski zahtevnog posla*
+4. Posao se kreira i prati kako je opisano u scenariju za pokretanje računski zahtevnog posla. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 5. Po prelasku posla u **`Završen`**, Sistem upiše dobijeni checkpoint u artefakt skladište sa automatskim lineage-om (bazni model, dataset, konfiguracija, job) i notifikuje korisnika.
 
 **Alternativni tokovi:**
 A1. **Nekompatibilan dataset** — u koraku 3: Sistem prijavi grešku validacije (format/zadatak ne odgovara baznom modelu); posao se ne kreira.
-A2. **Posao ne prođe proveru, padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; checkpoint se ne upisuje ako posao nije **`Završen`**. → vidi: *Pokretanje računski zahtevnog posla*
-A3. **Fine-tuning konvergira u model gori od baznog** — u koraku 5: posao jeste **`Završen`**, ali evaluacija pokazuje pad u odnosu na baseline. Ovo nije greška toka — checkpoint se upisuje normalno; odluka da li ga uopšte registrovati/predložiti za objavu donosi se kasnije, na osnovu evaluacije. Naznačeno ovde da se zna da **`Završen`** posao ne znači „dobar model". → vidi: *Evaluacija verzije modela na benchmark setu*
+A2. **Posao ne prođe proveru, padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; checkpoint se ne upisuje ako posao nije **`Završen`**. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
+A3. **Fine-tuning konvergira u model gori od baznog** — u koraku 5: posao jeste **`Završen`**, ali evaluacija pokazuje pad u odnosu na baseline. Ovo nije greška toka — checkpoint se upisuje normalno; odluka da li ga uopšte registrovati/predložiti za objavu donosi se kasnije, na osnovu evaluacije. Naznačeno ovde da se zna da **`Završen`** posao ne znači „dobar model". → vidi: *Evaluacija verzije modela na benchmark setu* (MOD-UC-008)
 
-**Rezultat:** Fine-tune-ovani checkpoint je u artefakt skladištu sa automatskim lineage-om ka baznom modelu i datasetu. Model još nije registrovan → vidi: *Registracija istreniranog artefakta kao modela (verzija 1)*.
+**Rezultat:** Fine-tune-ovani checkpoint je u artefakt skladištu sa automatskim lineage-om ka baznom modelu i datasetu. Model još nije registrovan → vidi: *Registracija istreniranog artefakta kao modela (verzija 1)* (MOD-UC-005).
 
 
+
+### MOD-UC-003
 
 **Naziv:** Fine-tuning nad osetljivim podacima koji ne napuštaju kontrolisano okruženje
 **Akter:** Prijavljen korisnik
@@ -813,17 +931,19 @@ A3. **Fine-tuning konvergira u model gori od baznog** — u koraku 5: posao jest
 1. Prijavljen korisnik otvori **„Katalog"** i izabere bazni model, pa **„Fine-tuning"**.
 2. Sistem prikaže formu i ponudi samo ona okruženja izvršavanja koja zadovoljavaju režim osetljivog dataseta (klaster na kom podaci žive); opcija download podataka nije ponuđena.
 3. Korisnik izabere osetljivi dataset i parametre, pa klikne **„Pošalji posao"**.
-4. Sistem proveri ABAC atribut, dozvole i kvotu i veže izvršavanje za kontrolisano okruženje; posao se dalje prati kako je opisano u scenariju za pokretanje računski zahtevnog posla. → vidi: *Pokretanje računski zahtevnog posla*
+4. Sistem proveri ABAC atribut, dozvole i kvotu i veže izvršavanje za kontrolisano okruženje; posao se dalje prati kako je opisano u scenariju za pokretanje računski zahtevnog posla. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 5. Sistem pokrene posao tamo gde podaci žive; korisnik prati napredak i logove, ali nema pristup sirovim podacima.
 6. Po prelasku posla u **`Završen`**, iz kontrolisane zone izlazi **samo artefakt modela (pune težine ili PEFT adapter), nakon prolaska kroz kontrolu izlaska**; Sistem ga upiše u artefakt skladište sa lineage-om i oznakom `compute-to-data`, pa notifikuje korisnika.
 
 **Alternativni tokovi:**
 A1. **Korisnik nema potreban ABAC atribut** — u koraku 4: Sistem odbije posao uz poruku da nedostaje sektorska sertifikacija/saglasnost; posao se ne kreira. *(Realno bi se akcija Fine-tuning mogla onemogućiti već u koraku 1; provera je ostavljena i u koraku 4 jer atribut može da nedostaje i pored vidljivosti modela — vidi otvorenu tačku ABAC vidljivosti.)*
-A2. **Posao padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; logovi se čuvaju bez izlaganja osetljivih podataka, artefakt ne izlazi iz zone. → vidi: *Pokretanje računski zahtevnog posla*
+A2. **Posao padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; logovi se čuvaju bez izlaganja osetljivih podataka, artefakt ne izlazi iz zone. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 
 **Rezultat:** Artefakt modela je u artefakt skladištu sa lineage-om i oznakom `compute-to-data`; sirovi osetljivi podaci nisu napustili kontrolisano okruženje.
 
 
+
+### MOD-UC-004
 
 **Naziv:** Pregled i poređenje eksperimenata (experiment tracking)
 **Akter:** Prijavljen korisnik
@@ -844,6 +964,8 @@ A3. **Alat za experiment tracking nedostupan tokom posla na klasteru** — bele�
 
 
 
+### MOD-UC-005
+
 **Naziv:** Registracija istreniranog artefakta kao modela (verzija 1)
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen; postoji istreniran model/checkpoint kao artefakt u artefakt skladištu koji pripada korisniku ili njegovom timu.
@@ -858,12 +980,14 @@ A3. **Alat za experiment tracking nedostupan tokom posla na klasteru** — bele�
 
 **Alternativni tokovi:**
 A1. **Nepotpuni metapodaci** — u koraku 3: Sistem označi obavezna polja koja nedostaju (npr. licenca); zapis se ne kreira dok se ne popune.
-A2. **Model sa istim nazivom već postoji** — u koraku 4: Sistem ponudi da se postojeći model verzioniše umesto kreiranja novog zapisa; korisnik bira. → vidi: *Dodavanje nove verzije postojećeg modela*
+A2. **Model sa istim nazivom već postoji** — u koraku 4: Sistem ponudi da se postojeći model verzioniše umesto kreiranja novog zapisa; korisnik bira. → vidi: *Dodavanje nove verzije postojećeg modela* (MOD-UC-006)
 A3. **Odustajanje** — u bilo kom koraku pre koraka 4: korisnik napusti formu; zapis se ne kreira.
 
 **Rezultat:** Model je registrovan kao verzija 1 u stanju **`Draft`**, sa metapodacima i lineage-om (potvrđenim ili `nepotvrđen`), vidljiv prema podešenoj vidljivosti.
 
 
+
+### MOD-UC-006
 
 **Naziv:** Dodavanje nove verzije postojećeg modela
 **Akter:** Prijavljen korisnik
@@ -883,6 +1007,8 @@ A2. **Nema dozvole izmene** — u koraku 1: akcija **„Dodaj verziju"** je onem
 **Rezultat:** Model ima novu verziju u stanju **`Draft`** sa povezanim lineage-om; prethodne verzije ostaju dostupne za pregled i rollback.
 
 
+
+### MOD-UC-007
 
 **Naziv:** Promocija `run`-a u verziju registrovanog modela
 **Akter:** Prijavljen korisnik
@@ -904,6 +1030,8 @@ A3. **Odustajanje** — pre koraka 3: korisnik napusti formu; promocija se ne iz
 
 
 
+### MOD-UC-008
+
 **Naziv:** Evaluacija verzije modela na benchmark setu
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen; postoji verzija modela za evaluaciju; korisnik ima dovoljnu kvotu.
@@ -912,20 +1040,22 @@ A3. **Odustajanje** — pre koraka 3: korisnik napusti formu; promocija se ne iz
 1. Prijavljen korisnik na **„Detalji resursa"** modela izabere **„Pokreni evaluaciju"**.
 2. Sistem prikaže formu sa izborom benchmark seta i verzije benchmarka (lm-evaluation-harness + sektorski datasetovi).
 3. Korisnik izabere benchmark i verziju benchmarka i klikne **„Pošalji posao"**.
-4. Evaluacioni posao se kreira i prati kao platformski posao. → vidi: *Pokretanje računski zahtevnog posla*
+4. Evaluacioni posao se kreira i prati kao platformski posao. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 5. Po prelasku posla u **`Završen`**, Sistem upiše rezultate evaluacije i poveže ih sa verzijom modela i verzijom benchmarka, pa notifikuje korisnika.
 
 **Alternativni tokovi:**
 A1. **Izabrani benchmark dataset nije dostupan** — u koraku 2/3: ako sektorski benchmark nije objavljen ili korisnik nema pristup, Sistem ga ne nudi u listi ili blokira slanje uz objašnjenje; posao se ne kreira.
-A2. **Posao padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; rezultati se ne upisuju ako posao nije **`Završen`**. → vidi: *Pokretanje računski zahtevnog posla*
+A2. **Posao padne ili korisnik prekine** — obrađeno scenarijem za pokretanje računski zahtevnog posla; rezultati se ne upisuju ako posao nije **`Završen`**. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 
 **Rezultat:** Rezultati evaluacije su sačuvani i povezani sa verzijom modela i verzijom benchmarka, dostupni na **„Detalji resursa"**.
 
 
 
+### MOD-UC-009
+
 **Naziv:** Podnošenje verzije modela za recenziju i objavu
 **Akter:** Prijavljen korisnik (vlasnik modela / član tima sa dozvolom)
-**Preduslov:** Korisnik je prijavljen; postoji verzija modela u stanju **`Draft`**; verzija ima rezultate evaluacije → vidi: *Evaluacija verzije modela na benchmark setu*.
+**Preduslov:** Korisnik je prijavljen; postoji verzija modela u stanju **`Draft`**; verzija ima rezultate evaluacije → vidi: *Evaluacija verzije modela na benchmark setu* (MOD-UC-008).
 
 **Osnovni tok:**
 1. Prijavljen korisnik na **„Detalji resursa"** verzije u stanju **`Draft`** klikne **„Pošalji na recenziju"**.
@@ -934,13 +1064,15 @@ A2. **Posao padne ili korisnik prekine** — obrađeno scenarijem za pokretanje 
 4. Sistem prevede verziju iz **`Draft`** u **`Na recenziji`**, stavi je u **„Red za pregled"** i notifikuje recenzente.
 
 **Alternativni tokovi:**
-A1. **Verzija nema evaluaciju** — u koraku 2: Sistem blokira slanje i uputi korisnika na **„Pokreni evaluaciju"**; stanje ostaje **`Draft`**. → vidi: *Evaluacija verzije modela na benchmark setu*
+A1. **Verzija nema evaluaciju** — u koraku 2: Sistem blokira slanje i uputi korisnika na **„Pokreni evaluaciju"**; stanje ostaje **`Draft`**. → vidi: *Evaluacija verzije modela na benchmark setu* (MOD-UC-008)
 A2. **Nepotpuni obavezni metapodaci** — u koraku 2: Sistem označi šta nedostaje; stanje ostaje **`Draft`**.
 A3. **Odustajanje** — pre koraka 4: korisnik napusti tok; stanje ostaje **`Draft`**.
 
 **Rezultat:** Verzija modela je u stanju **`Na recenziji`** i nalazi se u **„Redu za pregled"**, sa zabeleženim podnosiocem i vremenom.
 
 
+
+### MOD-UC-010
 
 **Naziv:** Vraćanje servisnog aliasa na prethodnu verziju
 **Akter:** Prijavljen korisnik (sa dozvolom izmene nad modelom)
@@ -963,9 +1095,11 @@ A3. **Verzija koja se servira vezana je za aktivni deployment** — u koraku 5: 
 
 
 
+### MOD-UC-011
+
 **Naziv:** Pregled evaluacije i odobravanje / odbijanje / vraćanje verzije
 **Akter:** Model reviewer (uloga `model-reviewer`)
-**Preduslov:** Model reviewer je prijavljen i ima ulogu `model-reviewer`; postoji verzija **modela** u stanju **`Na recenziji`** sa rezultatima evaluacije. Ovaj scenario pokriva isključivo recenziju modela — pregled i odluka o objavi **dataseta** obrađeni su zasebno → vidi: *Pregled i odluka o objavi dataseta*.
+**Preduslov:** Model reviewer je prijavljen i ima ulogu `model-reviewer`; postoji verzija **modela** u stanju **`Na recenziji`** sa rezultatima evaluacije. Ovaj scenario pokriva isključivo recenziju modela — pregled i odluka o objavi **dataseta** obrađeni su zasebno → vidi: *Pregled i odluka o objavi dataseta* (CAT-UC-004).
 
 **Osnovni tok:**
 1. Model reviewer otvori ekran **„Red za pregled"** i izabere verziju koja čeka odluku.
@@ -982,6 +1116,8 @@ A2. **Odbijanje** — u koraku 4: reviewer izabere **„Odbij"** i upiše razlog
 **Rezultat:** Verzija modela je u stanju **`Odobren`**, **`Odbijen`** ili **`Vraćeno na doradu`**, sa zabeleženom odlukom, autorom i komentarom.
 
 
+
+### MOD-UC-012
 
 **Naziv:** Objava odobrene verzije lokalno i (opciono) u Pharos katalog
 **Akter:** Model reviewer ili Platform administrator (uloga sa dozvolom objave)
@@ -1003,6 +1139,8 @@ A3. **Povlačenje iz upotrebe** — kasnije: ovlašćeni akter klikne **„Depre
 
 
 
+### MOD-UC-013
+
 **Naziv:** Objava leaderboard-a sa verzionisanjem benchmarka
 **Akter:** Platform administrator (uloga `platform-admin`)
 **Preduslov:** Platform administrator je prijavljen i ima ulogu `platform-admin`; postoje evaluacioni rezultati više modela na istoj verziji benchmarka.
@@ -1023,6 +1161,8 @@ A2. **Odustajanje** — pre koraka 4: administrator napusti ekran; leaderboard s
 
 ## 6. Upravljanje datasetovima
 
+
+### CAT-UC-006
 
 **Naziv:** Pregled opisa i uzorka javnog dataseta
 **Akter:** Anonimni posetilac
@@ -1046,6 +1186,8 @@ A3. **Dataset nema preview** — na koraku 6: uzorak podataka se ne prikazuje (n
 
 
 
+### CAT-UC-007
+
 **Naziv:** Uređivanje metapodataka ili vidljivosti objavljenog dataseta
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen i vlasnik je dataseta koji je već objavljen u katalogu.
@@ -1060,7 +1202,7 @@ A3. **Dataset nema preview** — na koraku 6: uzorak podataka se ne prikazuje (n
 
 **Alternativni tokovi:**
 A1. **Promena vidljivosti na javno** — na koraku 4: ako dataset prethodno nije bio javan, sistem upozorava „Ovaj dataset će biti vidljiv svim korisnicima platforme. Nastavi?"; korisnik potvrđuje → tok se nastavlja od koraka 5.
-A2. **Promena vidljivosti zahteva review** — na koraku 5: ako je dataset označen kao osetljiv ili sektorski, sistem ne primenjuje promenu odmah nego šalje zahtev data administratoru na odobrenje; korisnik vidi poruku „Zahtev je poslat na pregled". → vidi: *Odobravanje objave osetljivog dataseta*
+A2. **Promena vidljivosti zahteva review** — na koraku 5: ako je dataset označen kao osetljiv ili sektorski, sistem ne primenjuje promenu odmah nego šalje zahtev data administratoru na odobrenje; korisnik vidi poruku „Zahtev je poslat na pregled". → vidi: *Odobravanje objave osetljivog dataseta* (CAT-UC-010)
 A3. **Obavezno polje obrisano** — na koraku 5: sistem blokira čuvanje i označava polje koje mora biti popunjeno.
 A4. **Korisnik odustaje** — na bilo kom koraku: klikne **„Otkaži"**; sistem odbacuje izmene, dataset ostaje sa prethodnim vrednostima.
 A5. **Korisnik nema pravo uređivanja** — na koraku 2: dugme **„Uredi"** nije prikazano; direktan URL ka formi vraća grešku „Nemate dozvolu za uređivanje ovog resursa".
@@ -1068,6 +1210,8 @@ A5. **Korisnik nema pravo uređivanja** — na koraku 2: dugme **„Uredi"** nij
 **Rezultat:** Metapodaci dataseta su ažurirani u katalogu; nova vidljivost se odmah primenjuje (ili čeka odobrenje u slučaju A2).
 
 
+
+### CAT-UC-008
 
 **Naziv:** Upload dataseta
 **Akter:** Prijavljen korisnik
@@ -1094,6 +1238,8 @@ A5. **Korisnik odustaje** — na bilo kom koraku: klikne **„Otkaži"**; sistem
 
 
 
+### CAT-UC-009
+
 **Naziv:** Preuzimanje javnog dataseta
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen. Dataset je objavljen u katalogu sa vidljivošću `javno`.
@@ -1111,6 +1257,8 @@ A2. **Dataset je uklonjen ili nije dostupan** — na koraku 3: sistem prikazuje 
 **Rezultat:** Korisnik je preuzeo fajl dataseta lokalno. Sistem je zabeležio preuzimanje u audit logu.
 
 
+
+### CAT-UC-010
 
 **Naziv:** Odobravanje objave osetljivog dataseta
 **Akter:** Data administrator
@@ -1136,6 +1284,8 @@ A3. **Data administrator treba više vremena** — na koraku 6: ostavlja dataset
 ## 7. Kolaboracija i timski rad
 
 
+### ORG-UC-007
+
 **Naziv:** Kreiranje projekta
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen.
@@ -1156,6 +1306,8 @@ A3. **Korisnik odustaje** — na bilo kom koraku: klikne **„Otkaži"**; projek
 **Rezultat:** Projekat je kreiran, korisnik je automatski postavljen kao vlasnik i jedini član; projekat je vidljiv prema odabranoj vidljivosti.
 
 
+
+### ORG-UC-008
 
 **Naziv:** Pozivanje člana u projekat
 **Akter:** Prijavljen korisnik (vlasnik ili co-owner projekta)
@@ -1182,6 +1334,8 @@ A5. **Korisnik nema pravo pozivanja** — na koraku 2: dugme **„Pozovi člana"
 
 
 
+### ORG-UC-009
+
 **Naziv:** Uklanjanje člana iz projekta
 **Akter:** Prijavljen korisnik (vlasnik ili co-owner projekta)
 **Preduslov:** Korisnik je prijavljen i vlasnik je ili co-owner projekta. Projekat ima najmanje jednog člana kojeg može ukloniti.
@@ -1205,6 +1359,8 @@ A3. **Korisnik nema pravo uklanjanja** — na koraku 3: dugme **„Ukloni"** nij
 ## 8. Edukacija i kursevi
 
 
+### EDU-UC-001
+
 **Naziv:** Pregled kurseva i learning pathova
 **Akter:** Anonimni posetilac
 **Preduslov:** Nema — stranica je javno dostupna bez prijave.
@@ -1225,6 +1381,8 @@ A2. **Nema dostupnih kurseva** — na koraku 3: sistem prikazuje poruku „Trenu
 
 
 
+### EDU-UC-002
+
 **Naziv:** Upis na kurs
 **Akter:** Student
 **Preduslov:** Student je prijavljen; kurs je u statusu **`Aktivan`** i vidljiv studentima.
@@ -1238,12 +1396,14 @@ A2. **Nema dostupnih kurseva** — na koraku 3: sistem prikazuje poruku „Trenu
 
 **Alternativni tokovi:**
 A1. **Kurs je popunjen** — na koraku 4: kurs je dostigao maksimalan broj polaznika; sistem prikazuje poruku „Kurs je popunjen" i onemogućava upis.
-A2. **Student je već upisan** — na koraku 4: sistem prikazuje da je student već upisan i umesto **„Upiši se"** nudi **„Nastavi kurs"**. → vidi: *Praćenje napretka na kursu*
+A2. **Student je već upisan** — na koraku 4: sistem prikazuje da je student već upisan i umesto **„Upiši se"** nudi **„Nastavi kurs"**. → vidi: *Praćenje napretka na kursu* (EDU-UC-003)
 A3. **Kurs zahteva preduslov koji student nema** — na koraku 4: sistem blokira upis uz poruku koji preduslovni kurs ili znanje nedostaje.
 
 **Rezultat:** Student je upisan na kurs; kurs se pojavljuje u njegovoj listi upisanih kurseva i može pratiti napredak i otvarati lab vežbe.
 
 
+
+### EDU-UC-003
 
 **Naziv:** Praćenje napretka na kursu
 **Akter:** Student
@@ -1263,6 +1423,8 @@ A2. **Student nema upisanih kurseva** — na koraku 2: sistem prikazuje poruku �
 **Rezultat:** Student vidi trenutni napredak na kursu i može da nastavi od mesta gde je stao.
 
 
+
+### EDU-UC-004
 
 **Naziv:** Otvaranje interaktivne Jupyter lab sveske
 **Akter:** Student
@@ -1285,6 +1447,8 @@ A3. **Student je neaktivan** — tokom rada: sistem detektuje neaktivnost, upozo
 
 
 
+### EDU-UC-005
+
 **Naziv:** Pokretanje unapred konfiguriranog AI factory posla u lab vežbi
 **Akter:** Student
 **Preduslov:** Student je prijavljen, ima aktivnu Jupyter sesiju u okviru lab vežbe, i vežba sadrži unapred konfigurisan SLURM šablon.
@@ -1306,6 +1470,8 @@ A3. **Student prekoračuje dozvoljene resurse** — na koraku 2: sistem odbija s
 
 
 
+### EDU-UC-006
+
 **Naziv:** Preuzimanje sertifikata o završetku kursa
 **Akter:** Student
 **Preduslov:** Student je prijavljen i završio sve module i lab vežbe kursa.
@@ -1324,6 +1490,8 @@ A2. **Student traži sertifikat naknadno** — student se vraća na stranicu zav
 **Rezultat:** Student ima PDF sertifikat o završetku kursa.
 
 
+
+### EDU-UC-007
 
 **Naziv:** Kreiranje kursa i unos materijala
 **Akter:** Mentor / instruktor
@@ -1350,6 +1518,8 @@ A4. **Obavezno polje nije popunjeno** — na koraku 4 ili 8: sistem blokira akci
 
 
 
+### EDU-UC-008
+
 **Naziv:** Praćenje napretka studenata
 **Akter:** Mentor / instruktor
 **Preduslov:** Mentor je prijavljen, kurs je aktivan i najmanje jedan student je upisan.
@@ -1367,6 +1537,8 @@ A2. **Mentor želi da kontaktira studenta** — na koraku 4: klikne **„Pošalj
 **Rezultat:** Mentor ima pregled napretka svih studenata po modulima i lab vežbama.
 
 
+
+### EDU-UC-009
 
 **Naziv:** Konfiguracija resource limita za studente
 **Akter:** Predstavnik akademske institucije
@@ -1390,6 +1562,8 @@ A2. **Predstavnik želi različite limite po kursu** — na koraku 2: ova granul
 ## 9. Administracija, monitoring i usklađenost
 
 
+### INF-UC-006
+
 **Naziv:** Praćenje statusa i logova inference endpointa
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen i ima najmanje jedan deploy-ovan inference endpoint.
@@ -1403,11 +1577,13 @@ A2. **Predstavnik želi različite limite po kursu** — na koraku 2: ova granul
 
 **Alternativni tokovi:**
 A1. **Endpoint je u statusu greška** — na koraku 4: sistem prikazuje poruku o grešci i poslednji zapis u logu koji je prethodio grešci.
-A2. **Korisnik nema deploy-ovanih endpointa** — na koraku 2: sistem prikazuje poruku „Nemate aktivnih endpointa" i link ka scenariju deploy-a modela. → vidi: *Deploy sopstvenog modela kao inference endpoint*
+A2. **Korisnik nema deploy-ovanih endpointa** — na koraku 2: sistem prikazuje poruku „Nemate aktivnih endpointa" i link ka scenariju deploy-a modela. → vidi: *Deploy sopstvenog modela kao inference endpoint* (INF-UC-004)
 
 **Rezultat:** Korisnik ima uvid u trenutni status i logove svog inference endpointa.
 
 
+
+### OBS-UC-001
 
 **Naziv:** Pregled lične istorije aktivnosti
 **Akter:** Prijavljen korisnik
@@ -1421,11 +1597,13 @@ A2. **Korisnik nema deploy-ovanih endpointa** — na koraku 2: sistem prikazuje 
 
 **Alternativni tokovi:**
 A1. **Nema aktivnosti za odabrani filter** — na koraku 3: sistem prikazuje poruku „Nema zabeleženih aktivnosti za odabrane kriterijume."
-A2. **Korisnik želi da ponovi AI factory posao** — na koraku 4: klikne **„Ponovi"**; sistem otvara formu za novi posao sa prethodnim parametrima unapred popunjenim. → vidi: *Pokretanje računski zahtevnog posla*
+A2. **Korisnik želi da ponovi AI factory posao** — na koraku 4: klikne **„Ponovi"**; sistem otvara formu za novi posao sa prethodnim parametrima unapred popunjenim. → vidi: *Pokretanje računski zahtevnog posla* (AIF-UC-001)
 
 **Rezultat:** Korisnik ima pregled sopstvene istorije aktivnosti na platformi.
 
 
+
+### ADM-UC-004
 
 **Naziv:** Zahtev za potvrdu usklađenosti resursa sa sektorskim propisima
 **Akter:** Prijavljen korisnik
@@ -1448,6 +1626,8 @@ A3. **Korisnik odustaje** — na koraku 3: klikne **„Otkaži"**; zahtev se ne 
 **Rezultat:** Korisnik je dobio formalnu potvrdu da sme da koristi odabrani resurs u svom sektoru; potvrda je zabeležena u audit logu.
 
 
+
+### ORG-UC-010
 
 **Naziv:** Raspodela kvote članu organizacije
 **Akter:** Predstavnik organizacije
@@ -1473,6 +1653,8 @@ A3. **Predstavnik odustaje** — na bilo kom koraku: klikne **„Otkaži"**; kvo
 
 
 
+### USG-UC-001
+
 **Naziv:** Praćenje potrošnje resursa organizacije
 **Akter:** Predstavnik organizacije
 **Preduslov:** Predstavnik je prijavljen i organizacija ima dodeljenu kvotu.
@@ -1491,6 +1673,8 @@ A2. **Predstavnik želi detalje po članu** — na koraku 3: klikne na ime član
 **Rezultat:** Predstavnik ima pregled ukupne i po-članskoj potrošnji resursa organizacije za odabrani period.
 
 
+
+### ADM-UC-005
 
 **Naziv:** Dodeljivanje ili izmena kvote organizaciji
 **Akter:** Platform administrator
@@ -1515,6 +1699,8 @@ A4. **Administrator odbija zahtev** — na koraku A3: administrator pregleda zah
 
 
 
+### OBS-UC-002
+
 **Naziv:** Nadzor metrika platforme u realnom vremenu
 **Akter:** Platform administrator
 **Preduslov:** Administrator je prijavljen.
@@ -1532,6 +1718,8 @@ A3. **Metrika premašuje prag** — tokom pregleda: sistem vizuelno označava me
 **Rezultat:** Administrator ima uvid u trenutno stanje platforme i može da reaguje na anomalije.
 
 
+
+### OBS-UC-003
 
 **Naziv:** Postavljanje alarma na pragove iskorišćenosti
 **Akter:** Platform administrator
@@ -1556,6 +1744,8 @@ A3. **Administrator briše alarm** — na koraku 2: klikne **„Obriši"**; sist
 
 
 
+### OBS-UC-004
+
 **Naziv:** Pregled audit loga
 **Akter:** Platform administrator
 **Preduslov:** Administrator je prijavljen.
@@ -1572,6 +1762,8 @@ A1. **Nema rezultata za zadati filter** — na koraku 3: sistem prikazuje poruku
 **Rezultat:** Administrator ima pregled svih operacija na platformi u skladu sa zadatim filterima; zapisi se ne mogu menjati ni brisati.
 
 
+
+### ADM-UC-006
 
 **Naziv:** Pokretanje DPIA procedure za dataset sa ličnim podacima
 **Akter:** Platform administrator
@@ -1595,6 +1787,8 @@ A2. **Administrator čuva nacrt za kasnije** — na koraku 6: klikne **„Sačuv
 
 
 
+### ADM-UC-007
+
 **Naziv:** Konfiguracija politike gašenja neaktivnih GPU sesija
 **Akter:** Platform administrator
 **Preduslov:** Administrator je prijavljen.
@@ -1616,6 +1810,8 @@ A2. **Administrator unosi nevalidnu vrednost** — na koraku 5: sistem blokira �
 
 ## 10. Federacija sa EuroHPC (Pharos, IT4LIA)
 
+
+### FED-UC-001
 
 **Naziv:** Pristup federisanim resursima sa partnerske platforme
 **Akter:** Prijavljen korisnik
@@ -1639,6 +1835,8 @@ A3. **Resurs je uklonjen sa partnerske platforme** — na koraku 4: sistem prika
 
 
 
+### FED-UC-002
+
 **Naziv:** Izvoz resursa na partnersku platformu
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen putem MyAccessID. Resurs (model ili dataset) je objavljen u SAIFA katalogu sa vidljivošću `javno`. Federisana veza sa Pharos/IT4LIA je aktivna.
@@ -1659,6 +1857,8 @@ A3. **Resurs već postoji na partnerskoj platformi** — na koraku 5: sistem pri
 **Rezultat:** Resurs je dostupan na partnerskoj platformi sa oznakom porekla (SAIFA) i vidljiv korisnicima te platforme.
 
 
+
+### FED-UC-003
 
 **Naziv:** Konfiguracija automatskog sync-a kataloga sa partnerskim platformama
 **Akter:** Platform administrator
@@ -1682,6 +1882,8 @@ A3. **Partnerska platforma vraća neispravne metapodatke** — sistem preskače 
 **Rezultat:** Automatski sync je konfigurisan; katalog se redovno ažurira resursima sa partnerskih platformi prema postavljenom rasporedu i okidačima.
 
 
+
+### FED-UC-004
 
 **Naziv:** Ručni uvoz resursa sa partnerske platforme
 **Akter:** Platform administrator

@@ -1,6 +1,6 @@
 # SAIFA AI Gateway — Popis tehnoloških mogućnosti po slojevima
 
-Ovaj dokument je tehnički popis svih razmatranih opcija za svaki sloj infrastrukture platforme. Cilj je da se sve opcije testiraju, uporede sa potrebama klijenata, i da se na osnovu toga odaberu konačne tehnologije. Dokument ne donosi konačne odluke — služi kao osnova za evaluaciju.
+Ovaj dokument je tehnički popis svih razmatranih opcija za svaki sloj infrastrukture platforme. Cilj je da se sve opcije testiraju, uporede sa potrebama klijenata, i da se na osnovu toga odaberu konačne tehnologije. Dokument ne donosi konačne odluke — služi kao osnova za evaluaciju. Sažeta odluka „gotovo ili custom" po sloju (skraćeni pregled) je u `SAIFA_gotove_komponente_po_slojevima.md`.
 
 Da popis ne bi ostao samo lista bez smera, dodate su tri stvari koje vode izbor: vodeći princip (ispod), kriterijum eliminacije po sloju (šta diskvalifikuje opciju), i preporučeni "default PoC stack" — odakle počinjemo dok upitnik ne kaže drugačije.
 

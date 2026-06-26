@@ -85,7 +85,7 @@ Opcije:
 - Skladištenje težina: MinIO (S3-kompatibilno), resumable multipart upload, SHA-256 provera integriteta
 - Metapodaci: registar u PostgreSQL-u (licenca, jezik, tip zadatka, lineage), verzionisanje, vidljivost public/private/team
 
-Kako testiramo: uzećemo tri reprezentativna slučaja — mali model (~1 GB), veliki model (7B, ~15 GB) i jedan eksterni API model — i proći ceo put registracije za svaki. Namerno ćemo prekidati download na pola da vidimo da li se nastavlja ili kreće ispočetka, i proveriti da li checksum provera zaista zaustavlja oštećen fajl. Merimo ukupno vreme, broj koraka za korisnika i šta se dešava kad nešto krene po zlu. Kriterijum uspeha: ekspert registruje model bez čitanja dokumentacije, a prekinut prenos se sam oporavlja.
+Kako testiramo: prođemo ceo put registracije za mali model (~1 GB), veliki (7B, ~15 GB) i jedan eksterni API model, uz namerni prekid prenosa i proveru da checksum zaustavlja oštećen fajl. Kriterijum uspeha: ekspert registruje model bez čitanja dokumentacije, a prekinut prenos se sam oporavlja.
 
 Definition of done: korisnik registruje model (upload / HF / eksterni API), dobije verziju i obavezne metapodatke (uklj. licencu), model je vidljiv u katalogu po zadatoj vidljivosti, a prekinut prenos se sam oporavlja.
 
@@ -98,7 +98,7 @@ Opcije:
 - Serving: vLLM · Triton Inference Server · HuggingFace TGI · ONNX Runtime (laki CPU modeli) · eksterni provajderi kroz proxy
 - Prateće: SSE streaming · rate limiting i token budžeti · keširanje (Redis) · merenje potrošnje
 
-Kako testiramo: isti model (7B, po mogućstvu srpski fine-tune) podižemo na vLLM i TGI na istom GPU-u, pa puštamo load test (k6 ili locust): 1, 10, 50 paralelnih korisnika. Merimo vreme do prvog tokena, p95 latenciju, propusnost tokena u sekundi i zauzeće GPU memorije. Posebno gledamo ponašanje pod preopterećenjem — da li degradira elegantno ili puca. Za chat UI radimo test sa ne-tehničkim korisnicima: dajemo im zadatak ("pitajte model X i ocenite iskustvo") i gledamo gde zapinju. Kriterijum: stabilan streaming pod opterećenjem i chat koji ne-tehnički korisnik koristi bez pomoći.
+Kako testiramo: isti 7B model podignemo na vLLM i TGI na istom GPU-u i pustimo load test (1/10/50 korisnika), mereći vreme do prvog tokena, p95 latenciju, propusnost i ponašanje pod preopterećenjem; chat UI testiramo sa ne-tehničkim korisnicima. Kriterijum: stabilan streaming pod opterećenjem i chat koji ne-tehnički korisnik koristi bez pomoći.
 
 Definition of done: model se servira preko OpenAI-kompatibilnog API-ja i chat UI-ja, sa streamingom, rate limitom, token budžetom i merenjem potrošnje; ne-tehnički korisnik dobije odgovor bez pomoći.
 
@@ -112,7 +112,7 @@ Opcije:
 - Izvršavanje: SLURM job na PARADOX/ITE · Kubernetes Job za manje poslove
 - Praćenje: MLflow · Weights & Biases · ClearML
 
-Kako testiramo: isti bazni model i isti dataset (mali srpski instruction set, npr. 5–10k primera) provlačimo kroz Axolotl, Unsloth i LLaMA-Factory. Merimo: koliko traje podešavanje konfiguracije (subjektivno, ali beležimo sate), VRAM potrošnju, trajanje treninga i — najbitnije — kvalitet rezultata na istom evaluacionom setu pre/posle. Paralelno poredimo LoRA i QLoRA na istom zadatku da utvrdimo koliko gubimo kvaliteta za koliko ušteđenih resursa. Za praćenje eksperimenata podižemo MLflow self-hosted i proveravamo da li radi preko veze ka klasteru (delimično izolovano okruženje) — to je za nas eliminacioni kriterijum, pa W&B testiramo samo ako MLflow podbaci. Kriterijum: ceo ciklus (config → trening → eval → registracija) prolazi bez ručnih intervencija.
+Kako testiramo: isti bazni model i mali srpski instruction set provučemo kroz Axolotl, Unsloth i LLaMA-Factory, mereći trud konfiguracije, VRAM, trajanje i kvalitet pre/posle, i poredimo LoRA vs QLoRA. MLflow proveravamo preko veze ka klasteru (eliminacioni kriterijum); W&B samo ako MLflow podbaci. Kriterijum: ceo ciklus (config → trening → eval → registracija) prolazi bez ručnih intervencija.
 
 Definition of done: korisnik pokrene fine-tuning iz šablona, posao ode na HPC/Kubernetes, prati napredak uživo, a rezultujući model se automatski registruje sa lineage-om ka baznom modelu i datasetu.
 
@@ -126,7 +126,7 @@ Opcije:
 - Validacija: provera formata, enkodiranja, heuristički PII sken
 - GDPR: klasifikacija (4 nivoa) · saglasnosti · anonimizacija · lineage
 
-Kako testiramo: za DVC i LakeFS igramo isti scenario iz stvarnog života: upload dataseta, dodavanje nove verzije, vraćanje na staru, i — gde se razlikuju — paralelna anotacija u dve grane sa spajanjem. Merimo koliko je to komplikovano za korisnika (koji ne sme da vidi nijednu DVC/LakeFS komandu — sve ide kroz naš API) i za nas koji to održavamo. Za PII sken pravimo probni dataset sa namerno ubačenim ličnim podacima (imena, JMBG-ovi, brojevi telefona) i merimo koliko ih sken hvata, jer od toga zavisi GDPR automatika. Kriterijum: verzionisanje koje korisnik razume kao "verzija 1, verzija 2" bez ikakvog znanja o alatu ispod.
+Kako testiramo: za DVC i LakeFS odigramo upload → nova verzija → vraćanje na staru (i paralelnu anotaciju gde se razlikuju), uz uslov da korisnik ne vidi nijednu komandu alata. PII sken merimo na probnom datasetu sa namerno ubačenim ličnim podacima. Kriterijum: verzionisanje koje korisnik razume kao "verzija 1, verzija 2" bez ikakvog znanja o alatu ispod.
 
 Definition of done: korisnik upload-uje dataset, dobije verziju, vrati se na staru, a sistem klasifikuje podatke i prijavi mogući PII pre nego što dataset može da se objavi ili podeli.
 
@@ -140,7 +140,7 @@ Opcije:
 - Prenos: rsync (veliki fajlovi) · SFTP (skripte) · S3/MinIO na HPC strani
 - Bezbednost: Vault SSH sertifikati · izolovan bridge servis · kvote sa rezervacijom i obračunom
 
-Kako testiramo: prvo sve razvijamo protiv lokalnog mock SLURM-a (kontejner sa pravim slurmctld/slurmd), pa tek onda na pravom klasteru. Ključni testovi otpornosti: prekid SSH veze tačno između sbatch komande i čitanja job ID-a (da li dupliramo posao?), restart bridge servisa dok poslovi traju (da li ih sistem ponovo "usvoji" preko sacct?), i prekid rsync prenosa velikog dataseta (da li nastavlja gde je stao?). slurmrestd testiramo samo ako ga operateri klastera omoguće — zato je SSH putanja primarna, jer ne zavisi ni od koga. Merimo i kašnjenje live log streama (od linije u SLURM logu do browsera). Kriterijum: nijedan scenario prekida ne sme da proizvede dupli posao ili izgubljen rezultat.
+Kako testiramo: razvijamo prvo protiv lokalnog mock SLURM-a, pa na pravom klasteru, sa fokusom na otpornost: prekid SSH veze između sbatch-a i čitanja job ID-a (dupli posao?), restart bridge servisa dok poslovi traju (ponovno usvajanje preko sacct?) i prekid rsync prenosa (nastavak?). slurmrestd testiramo samo ako ga operateri omoguće — SSH putanja je primarna. Kriterijum: nijedan prekid ne sme da proizvede dupli posao ili izgubljen rezultat.
 
 Definition of done: korisnik pokrene job iz portala, vidi status i logove uživo, preuzme rezultat, a sistem sprečava dupli submit posle prekida veze i oporavlja stanje poslova posle restarta bridge servisa.
 
@@ -153,7 +153,7 @@ Opcije:
 - Alternative: JupyterLite (browser, bez servera) · code-server (pun IDE) · Marimo (edukativne sveske) · Google Colab (samo javni edukativni sadržaj)
 - Politike: limiti po korisniku, gašenje neaktivnih sesija, GPU po ulozi
 
-Kako testiramo: merimo vreme od klika "Otvori svesku" do prve izvršene ćelije za KubeSpawner (očekujemo sekunde) i SlurmSpawner (očekujemo minute zbog reda čekanja) — to direktno odlučuje koji je podrazumevan. Simuliramo pun klaster da vidimo kakvu poruku korisnik dobija kad resursa nema. Za obuke pravimo jednu istu lab vežbu u JupyterLite i na JupyterHub-u i dajemo je grupi studenata — ako JupyterLite pokriva vežbu, štedimo serverske resurse. code-server dajemo dvojici-trojici naprednih korisnika na dve nedelje i slušamo šta kažu. Posebno testiramo gašenje neaktivnih GPU sesija: da li upozorenje stiže na vreme i da li se rad gubi (ne sme — radni direktorijum je na trajnom disku). Kriterijum: sveska se otvara dovoljno brzo da ne prekida tok rada, a neaktivne GPU sesije se oslobađaju bez gubitka rada.
+Kako testiramo: merimo vreme od „Otvori svesku" do prve ćelije za KubeSpawner (sekunde) i SlurmSpawner (minute) — to bira podrazumevani, i simuliramo pun klaster radi poruke korisniku. Istu lab vežbu damo u JupyterLite i JupyterHub-u, code-server probnim naprednim korisnicima, i testiramo gašenje neaktivnih GPU sesija (rad se ne sme izgubiti). Kriterijum: sveska se otvara dovoljno brzo da ne prekida tok rada, a neaktivne GPU sesije se oslobađaju bez gubitka rada.
 
 Definition of done: sveska se otvara dovoljno brzo da ne prekida tok rada, izolovana je po korisniku sa kvotama, a neaktivne GPU sesije se oslobađaju bez gubitka rada.
 
@@ -166,7 +166,7 @@ Opcije:
 - Sektorski pogledi: konfiguracioni filteri nad istim katalogom
 - Provenance: oznaka izvora (lokalno / Pharos / IT4LIA / CKAN)
 
-Kako testiramo: punimo probni katalog sa 100+ stvarnih stavki (modeli, datasetovi, kursevi) i pravimo listu od 30-ak realnih upita — obavezno i na srpskom, i ćirilicom i latinicom, jer je to naš specifičan problem (korisnik kuca "модел за здравство" i "model za zdravstvo" i očekuje iste rezultate). Poredimo čist full-text (OpenSearch) sa hibridom full-text + semantička pretraga (pgvector): da li semantika opravdava dodatnu složenost? Ocenjuje se ručno: za svaki upit, da li je pravi rezultat u prvih 5. Kriterijum: pretraga radi podjednako dobro na oba pisma i oba jezika, a sektorski filter nikad ne propusti neodobren resurs.
+Kako testiramo: napunimo probni katalog sa 100+ stavki i ~30 realnih upita, obavezno na srpskom i ćirilicom i latinicom („модел за здравство" = „model za zdravstvo"), pa poredimo čist full-text (OpenSearch) sa hibridom + semantika (pgvector) — ocena: da li je pravi rezultat u prvih 5. Kriterijum: pretraga radi podjednako na oba pisma i jezika, a sektorski filter nikad ne propusti neodobren resurs.
 
 Definition of done: pretraga vraća tačan rezultat u prvih 5 na oba pisma i oba jezika, svaki resurs ima jasnu oznaku porekla, a sektorski filter nikad ne propusti neodobren resurs.
 
@@ -179,7 +179,7 @@ Opcije:
 - Lab vežbe: kurirane sveske + pravi podaci iz MinIO + zaključani SLURM šabloni na ITE
 - Jezici: srpski (ćir./lat.) i engleski
 
-Kako testiramo: postavljamo isti probni kurs (par lekcija + jedna hands-on lab vežba) i na Open edX i na Moodle, pa merimo dve stvari: koliko nas košta integracija (upis, praćenje napretka, sertifikat — sve kroz API, korisnik ne sme da oseti da je "izašao" iz SAIFA portala) i kako ga ocenjuju probni studenti. Lab vežbu testiramo ceo lanac: upis → otvaranje sveske → čitanje dataseta → slanje malog posla na klaster → automatska provera rezultata → upisan napredak. Kriterijum: student završi vežbu bez ičije pomoći, a mi procenimo koji LMS traži manje održavanja (Moodle je lakši za hosting, Open edX bogatiji — odluka zavisi od obima kurseva koje klijenti najave).
+Kako testiramo: isti probni kurs (lekcije + jedna hands-on lab vežba) postavimo na Open edX i Moodle i merimo trošak integracije (upis, napredak, sertifikat kroz API, bez izlaska iz portala) i ocenu probnih studenata; lab vežbu testiramo ceo lanac upis → sveska → dataset → posao na klasteru → provera → napredak. Kriterijum: student završi vežbu bez pomoći, a mi procenimo koji LMS traži manje održavanja (Moodle lakši za hosting, Open edX bogatiji).
 
 Definition of done: student završi lab vežbu kroz portal bez izlaska iz SAIFA okruženja, sa upisanim napretkom i (opciono) sertifikatom.
 
@@ -192,7 +192,7 @@ Opcije:
 - Apstrakcija: adapter po partneru (Pharos API, IT4LIA API, CKAN, Dataverse)
 - Identitet: Keycloak brokering ka EuroHPC AAI · eduGAIN preko AMRES-a
 
-Kako testiramo: ovde smo zavisni od partnera, pa testiramo u dva koraka. Prvo pravimo mock Pharos servis po njihovoj objavljenoj šemi metapodataka i na njemu razvijamo i testiramo ceo izvoz/uvoz, uključujući i namerno pokvarene odgovore (pogrešna šema, timeout, polovičan odgovor) — sync ne sme da upiše ništa polovično. Drugi korak je test protiv pravog Pharos sandbox okruženja, čim ga dobijemo kroz tehničke radionice — to tražimo od partnera odmah, jer je njihova spremnost najveća nepoznanica celog projekta. Kriterijum: model označen za objavu pojavi se u (mock) partnerskom katalogu bez ručne intervencije, a nijedan kvar partnera ne ošteti naš katalog.
+Kako testiramo: u dva koraka — prvo mock Pharos po objavljenoj šemi (uključujući namerno pokvarene odgovore: sync ne sme upisati ništa polovično), pa test protiv pravog Pharos sandbox-a čim ga dobijemo (spremnost partnera je najveća nepoznanica). Kriterijum: model označen za objavu pojavi se u (mock) partnerskom katalogu bez ručne intervencije, a nijedan kvar partnera ne ošteti naš katalog.
 
 Definition of done: model označen za objavu pojavi se u (mock) partnerskom katalogu bez ručne intervencije, uvezeni resursi nose oznaku porekla, a nijedan kvar partnera ne ošteti naš katalog.
 
@@ -205,7 +205,7 @@ Opcije:
 - Izvršavanje: platformski job na HPC ili GPU pool-u
 - Leaderboard: objava po verziji benchmarka, uz odobrenje
 
-Kako testiramo: puštamo lm-evaluation-harness na dva poznata modela i proveravamo dve stvari: reproduktivnost (isti model, dva pokretanja — rezultati moraju biti praktično identični, inače leaderboard nema smisla) i cenu (koliko GPU sati košta standardna evaluacija, da znamo šta možemo da priuštimo po modelu). Paralelno sastavljamo prvi mali srpski benchmark set i proveravamo koliko je posla uvesti custom task u harness. Kriterijum: evaluacija je ponovljiva, automatizovana kao običan platformski posao, i košta predvidivo.
+Kako testiramo: lm-evaluation-harness na dva poznata modela, proveravajući reproduktivnost (dva pokretanja → praktično identično) i cenu (GPU sati po evaluaciji), i merimo koliko je posla uvesti custom srpski task. Kriterijum: evaluacija je ponovljiva, automatizovana kao običan platformski posao i košta predvidivo.
 
 Definition of done: evaluacija je ponovljiva, pokreće se kao običan platformski posao, košta predvidivo, a rezultat ide na leaderboard tek uz odobrenje (vidi 13).
 
@@ -219,7 +219,7 @@ Opcije:
 - Atributi (ABAC): sektorske sertifikacije, afilijacija → kvote, GDPR saglasnosti
 - API ključevi: generisanje, scope-ovanje, rotacija, opoziv
 
-Kako testiramo: podižemo Keycloak realm sa svim ulogama i pišemo automatizovane testove izolacije koji za svaku ulogu pokušavaju svaku operaciju nad tuđim resursima — sve mora da vrati "zabranjeno". Ovi testovi ostaju trajno u CI-ju, jer je curenje podataka između tenanta najgora greška koju platforma može da napravi. eduGAIN prijavu testiramo sa AMRES test identitetom čim dobijemo pristup (organizaciono pitanje — pokrećemo odmah). Posebno testiramo scenario "ekspert pravi API ključ, koristi ga iz skripte, opoziva ga" — opoziv mora da deluje odmah. Kriterijum: nijedan test izolacije ne prolazi pogrešno, ni jednom.
+Kako testiramo: Keycloak realm sa svim ulogama + automatizovani testovi izolacije koji za svaku ulogu pokušavaju svaku operaciju nad tuđim resursima (sve mora „zabranjeno") i ostaju trajno u CI-ju; eduGAIN sa AMRES test identitetom, i ciklus „napravi → koristi → opozovi API ključ" (opoziv deluje odmah). Kriterijum: nijedan test izolacije ne prolazi pogrešno, ni jednom.
 
 Definition of done: svaka uloga vidi i radi samo ono što sme, nijedan test izolacije ne prolazi pogrešno, a opoziv API ključa deluje odmah.
 
@@ -235,7 +235,7 @@ Opcije:
 - Notifikacije: email + in-app
 - Feature flags: Unleash · env varijable
 
-Kako testiramo: monitoring stack podižemo već u dev okruženju (ne na kraju!) i proveravamo da li iz njega možemo da odgovorimo na pitanja koja će nam EuroHPC postavljati: koliko je GPU sati potrošeno po projektu, kolika je potrošnja energije, koliko je preuzimanja dataseta bilo. Ako na neko pitanje ne možemo da odgovorimo iz dashboarda, fali nam metrika. Za mrežni nadzor pravimo mali ogled: softverski exporter (softflowd) na dev mašini → nfdump kolektor → vizualizacija u Grafani, da ceo NetFlow lanac vidimo na delu pre razgovora sa mrežnim timom o pravim ruterima. Audit testiramo pokušajem prevare: da li možemo da izmenimo ili obrišemo postojeći zapis? Ne smemo moći, čak ni kao admin baze. Kriterijum: svaki izveštaj koji compliance traži dobija se iz sistema, bez ručnog kopanja po logovima.
+Kako testiramo: monitoring stack dižemo već u dev okruženju i proveravamo da li iz njega odgovaramo na EuroHPC pitanja (GPU sati po projektu, energija, preuzimanja dataseta) — ako ne možemo, fali metrika; mrežni nadzor proveravamo malim NetFlow ogledom (softflowd → nfdump → Grafana), a audit pokušajem izmene/brisanja zapisa (ne sme uspeti ni kao admin baze). Kriterijum: svaki compliance izveštaj dobija se iz sistema bez ručnog kopanja po logovima.
 
 Definition of done: svaki izveštaj koji compliance/EuroHPC traži dobija se iz sistema bez ručnog kopanja po logovima, a audit zapis ne može da se izmeni ni obriše čak ni kao admin baze.
 
@@ -248,7 +248,7 @@ Opcije:
 - Review/approval: odobravanje modela i datasetova, komentari, validation reports
 - Kod-kolaboracija: interni GitLab/Gitea (merge request, review) — već potreban za DVC
 
-Kako testiramo: pravimo prototip team vidljivosti (model vidljiv timu, nevidljiv ostalima) i dajemo ga jednoj istraživačkoj grupi (3–5 ljudi) da prođe stvaran ciklus: jedan trenira, drugi pregleda, treći odobrava za objavu. Slušamo gde im proces smeta — kolaboracione funkcionalnosti je lako prekomplikovati, pa namerno krećemo od minimuma i dodajemo samo ono što grupa zatraži. Kriterijum: review ciklus od treninga do odobrene objave prođe kroz platformu bez "sa strane" komunikacije (mejlova sa fajlovima u prilogu).
+Kako testiramo: prototip team vidljivosti (model vidljiv timu, nevidljiv ostalima) damo istraživačkoj grupi (3–5 ljudi) da prođe ciklus jedan trenira / drugi pregleda / treći odobrava, krećući od minimuma i dodajući samo što grupa zatraži. Kriterijum: review ciklus od treninga do odobrene objave prođe kroz platformu bez „sa strane" komunikacije.
 
 Definition of done: review ciklus od treninga do odobrene objave prođe kroz platformu, sa jasnim ko-šta-odobrava (vidi RACI ispod), bez komunikacije "sa strane".
 
@@ -259,7 +259,7 @@ Rizici: organizacioni (definisanje ownership i approval procesa) — srednji · 
 Opcije:
 - Kubeflow Pipelines · Apache Airflow · Argo Workflows · sopstveni job-scheduler (dovoljan za jednostavne lance, već u arhitekturi)
 
-Kako testiramo: definišemo referentni pipeline od četiri koraka (preprocesiranje → trening → evaluacija → registracija) i prvo ga izvedemo našim job-scheduler-om sa ulančavanjem preko događaja. Ako to bude čitljivo i pouzdano, generički engine nam ne treba — svaki od navedenih alata je ozbiljan sistem za održavanje i ne uvodimo ga "za svaki slučaj". Ako se pokaže da klijenti traže složenije lance (grananje, retry politike po koraku, paralelizam), radimo PoC sa Argo Workflows (najprirodniji na Kubernetes-u) i tek onda poredimo sa Airflow/Kubeflow. Kriterijum odluke: složenost pipeline-ova koju klijenti stvarno traže u upitniku, ne ona koju možemo da zamislimo.
+Kako testiramo: referentni pipeline od četiri koraka (preprocesiranje → trening → evaluacija → registracija) prvo izvedemo sopstvenim job-scheduler-om sa ulančavanjem preko događaja; ako je čitljivo i pouzdano, generički engine ne uvodimo. Tek ako klijenti traže složenije lance (grananje, retry, paralelizam) radimo PoC sa Argo Workflows. Kriterijum: odluku vodi složenost koju klijenti stvarno traže u upitniku, ne zamišljena.
 
 Definition of done: referentni pipeline (preprocesiranje → trening → evaluacija → registracija) prođe kroz sopstveni job-scheduler bez ručnih intervencija; generički engine se uvodi samo ako ga klijentske potrebe opravdaju.
 
