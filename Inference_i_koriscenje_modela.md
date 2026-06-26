@@ -33,7 +33,7 @@ A5. **Streaming odgovor** — u koraku 2 i 6: korisnik je u zahtevu tražio stre
 5. Sistem proveri pristup korisnika modelu i datasetu (uloga, ABAC) i raspoloživu kvotu kroz hijerarhiju (institucija → korisnik).
 6. Sistem rezerviše procenjenu kvotu za posao, da paralelni submit ne potroši isti budžet.
 7. Sistem odredi izvršno okruženje prema veličini posla (Kubernetes Job za manje poslove ili SLURM job na PARADOX/ITE za velike) i stavi posao u red.
-> ⚠ Pravilo rutiranja „prema veličini posla" nije definisano u referentnim dokumentima. Otvoreno je po čemu se meri veličina (broj redova dataseta, procenjeni GPU sati, veličina ulaza) i gde je prag K8s/SLURM. Vezati za otvoreno pitanje rutiranja između klastera (popis.md, sekcija 5).
+> ⚠ Pravilo rutiranja „prema veličini posla" nije definisano u referentnim dokumentima. Otvoreno je po čemu se meri veličina (broj redova dataseta, procenjeni GPU sati, veličina ulaza) i gde je prag K8s/SLURM. Vezati za otvoreno pitanje rutiranja između klastera (popis_final.md, sekcija 5).
 8. Sistem kreira zapis posla u stanju **„U redu"** i prikaže potvrdu sa identifikatorom posla.
 
 **Alternativni tokovi:**
@@ -91,7 +91,7 @@ A3. **Vraćanje na podrazumevano** — u koraku 4: administrator izabere **„Vr
 **Naziv:** Deploy sopstvenog modela kao inference endpoint
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima pravo da deploy-uje modele; model je registrovan i otpremljen u MinIO i nalazi se u stanju **„Odobren"** (`approved`) ili **„Objavljen (lokalno)"** (`published locally`); postoji raspoloživ GPU kapacitet u serving pool-u.
-> ⚠ Ceo scenario je pretpostavka. Self-service deploy modela kao endpoint ne pominje se u referentnim dokumentima (funkcionalnosti.md, popis.md), a u referentnom stack-u (Themelio/GRNET) deploj velikih modela je eksplicitno odobren platformski servis, ne self-service akcija. Ovaj scenario ima smisla samo ako se usvoji dedicated/self-service serving model umesto deljenog upravljanog pool-a (vidi pretpostavku u scenariju „Pozivanje modela"). Do te odluke ovo je kandidat za kasniju fazu, ne za MVP. Pre finalizacije razrešiti i: (a) da li deploy zahteva odobrenje administratora, jer je GPU pool deljen i ograničen resurs; (b) da endpoint ne sme biti vidljiviji od modela (npr. `team` model iza `public` endpointa odao bi pristup modelu).
+> ⚠ Ceo scenario je pretpostavka. Self-service deploy modela kao endpoint ne pominje se u referentnim dokumentima (funkcionalnosti.md, popis_final.md), a u referentnom stack-u (Themelio/GRNET) deploj velikih modela je eksplicitno odobren platformski servis, ne self-service akcija. Ovaj scenario ima smisla samo ako se usvoji dedicated/self-service serving model umesto deljenog upravljanog pool-a (vidi pretpostavku u scenariju „Pozivanje modela"). Do te odluke ovo je kandidat za kasniju fazu, ne za MVP. Pre finalizacije razrešiti i: (a) da li deploy zahteva odobrenje administratora, jer je GPU pool deljen i ograničen resurs; (b) da endpoint ne sme biti vidljiviji od modela (npr. `team` model iza `public` endpointa odao bi pristup modelu).
 
 **Osnovni tok:**
 1. Prijavljen korisnik otvori **„Detalji resursa"** svog modela i izabere **„Deploy kao endpoint"**.

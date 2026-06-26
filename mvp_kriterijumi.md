@@ -9,7 +9,7 @@ Bez ovog scenarija nijedan korisnik ne može da obavi nijednu korisnu radnju na 
 - **Test pitanje:** Ako ovog scenarija nema, postoji li ijedna persona koja i dalje može da obavi neku korisnu radnju?
 
 ### K2 — Tehnički rizik
-Scenario dokazuje da deo arhitekture sa visokim rizikom zaista radi u ovom konkretnom okruženju (HPC bridge, GPU serving, spawn sveski, experiment tracking preko delimično izolovane veze). To su mesta gde `funkcionalnosti.md`/`popis.md` označavaju rizik kao srednji/visok ili navode eliminacioni kriterijum.
+Scenario dokazuje da deo arhitekture sa visokim rizikom zaista radi u ovom konkretnom okruženju (HPC bridge, GPU serving, spawn sveski, experiment tracking preko delimično izolovane veze). To su mesta gde `funkcionalnosti.md`/`popis_final.md` označavaju rizik kao srednji/visok ili navode eliminacioni kriterijum.
 - **Test pitanje:** Da li ovaj scenario prvi put u stvarnom okruženju potvrđuje komponentu za koju ne znamo pouzdano da radi?
 
 ### K3 — Zavisnost odozdo
@@ -21,7 +21,7 @@ Scenario mora biti demonstrabilan u prvom javnom milestone-u prema EuroHPC-u (pr
 - **Test pitanje:** Da li bismo ovo pokazali na prvoj javnoj demonstraciji/izveštaju ka EuroHPC-u?
 
 ### K5 — Compliance/bezbednost minimuma
-Bez ovog scenarija platforma ne sme da servisira nijedan realan zahtev: izolacija tenanata, audit, kontrola pristupa (RBAC/ABAC), GDPR minimum, operativna bezbednost klastera. `popis.md` sek. 11 i `funkcionalnosti.md` 11/12 tretiraju ovo kao tvrde zahteve, ne opcije.
+Bez ovog scenarija platforma ne sme da servisira nijedan realan zahtev: izolacija tenanata, audit, kontrola pristupa (RBAC/ABAC), GDPR minimum, operativna bezbednost klastera. `popis_final.md` sek. 11 i `funkcionalnosti.md` 11/12 tretiraju ovo kao tvrde zahteve, ne opcije.
 - **Test pitanje:** Da li bismo, bez ovog scenarija, prekršili bezbednosni ili compliance zahtev čim primimo prvog realnog korisnika?
 
 ## 2. Pravilo dodeljivanja faze
@@ -74,6 +74,8 @@ Faza i nosilac (K kriterijum) navedeni su po scenariju; gde je scenario blokiran
 - **Zahtev za povećanje kvote** — Pilot (K5, 1 kriterijum); kvotni model povezan sa **OD-5**.
 - **Odluka o zahtevu člana za povećanje kvote (predstavnik)** — Pilot (K5, 1 kriterijum); povezano sa **OD-5**.
 - **Pokretanje posla iz zaključanog šablona (student)** — Pilot (K2 reuse, 1 kriterijum); edukacioni kontekst, zavisi od šablona.
+- **Definisanje i pokretanje ML pipeline-a** — MVP za linearni lanac (K2 + K1; sopstveni job-scheduler dovoljan); grananje/retry su Pilot (Argo Workflows PoC).
+- **Paralelni submit više poslova** — Pilot (K2, 1 kriterijum); atomična rezervacija kvote za grupu zahteva tehničku pažnju.
 
 ### Model lifecycle (use case sek. 5)
 - **Registracija istreniranog artefakta kao modela (verzija 1)** — MVP (K3 + K1). Registar je substrat za katalog/objavu (`funkcionalnosti.md` 1 MVP).
@@ -113,6 +115,23 @@ Cela grupa je Pilot: `funkcionalnosti.md` 9 stavlja u MVP samo mock/read-only, a
 - **Izvoz resursa na partnersku platformu** — Pilot (K4; zavisi od partnera).
 - **Konfiguracija automatskog sync-a kataloga** — Pilot (zavisi od partnera; validacija šeme).
 - **Ručni uvoz resursa sa partnerske platforme** — Pilot (mock u MVP).
+- **Onboarding novog federisanog partnera (admin)** — Pilot (K4; mock u MVP, realni onboarding Pilot kad partnerski API sazri).
+
+### Kontejneri (use case sek. 11)
+- **Registracija kontejner image-a** — Pilot (K2; Harbor + Kaniko integracija, verifikacija Apptainer kompatibilnosti sa HPC).
+- **Pokretanje posla sa sopstvenim kontejnerom** — Pilot (K2; zavisi od registracije kontejnera i rutiranja OD-4).
+
+### Statistike i dashboard (use case sek. 12)
+- **Pregled ličnog usage dashboarda** — MVP (K1 + K5; korisnik mora videti kvotu pre nego što je prekorači).
+- **Pregled poslovnih statistika platforme (admin)** — MVP (K4; EuroHPC izveštavanje zahteva agregatne metrike od prvog dana).
+- **Pregled statusa platforme** — MVP (K1; korisnik koji ne može da koristi platformu mora znati da li je problem na njegovoj strani).
+- **Prijava problema kroz ticketing** — MVP (K1; bez ovoga korisnici nemaju gde da prijave problem i platforma je neupotrebljiva za realan onboarding).
+
+### Verifikacija (use case sek. 13)
+- **Nezavisna verifikacija rezultata benchmarka** — Pilot (K5, 1 kriterijum; integrity leaderboard-a, aktuelno tek kad leaderboard postane javan).
+
+### Kolaboracija — timovi (use case sek. 7)
+- **Kreiranje tima unutar organizacije** — Pilot (K3, 1 kriterijum; blokiran **OD-14**; ravna organizacija dovoljna za MVP).
 
 ### Administracija (use case sek. 1 — nalozi/organizacije/sesije, i sek. 9)
 - **Registracija organizacije i zahtev za odobrenje** — MVP (K3 + K5; multi-tenant substrat).
@@ -139,8 +158,8 @@ Cela grupa je Pilot: `funkcionalnosti.md` 9 stavlja u MVP samo mock/read-only, a
 Ovi kriterijumi eksplicitno ne rešavaju:
 
 - **Redosled implementacije unutar MVP-a** — kriterijumi kažu šta jeste MVP, ne kojim redom se MVP scenariji grade.
-- **Kapacitet tima** — ne uzimaju u obzir koliko ljudi i koliko vremena tim ima; mali tim može morati da seče i unutar MVP-a (`popis.md` vodeći princip: reuse before build).
-- **Zavisnost od operatera klastera** — slurmrestd, S3/MinIO na HPC strani, kvote i pristup nisu zagarantovani (`popis.md` sek. 5, `funkcionalnosti.md` 5: visok rizik); kriterijumi ne mogu da preklasifikuju scenario koji zavisi od spoljne spremnosti.
+- **Kapacitet tima** — ne uzimaju u obzir koliko ljudi i koliko vremena tim ima; mali tim može morati da seče i unutar MVP-a (`popis_final.md` vodeći princip: reuse before build).
+- **Zavisnost od operatera klastera** — slurmrestd, S3/MinIO na HPC strani, kvote i pristup nisu zagarantovani (`popis_final.md` sek. 5, `funkcionalnosti.md` 5: visok rizik); kriterijumi ne mogu da preklasifikuju scenario koji zavisi od spoljne spremnosti.
 - **Zavisnost od partnera (EuroHPC federacija)** — zrelost Pharos/IT4LIA API-ja i metapodataka je van kontrole tima i ne menja se ocenjivanjem (`funkcionalnosti.md` 9).
 - **Zatvaranje otvorenih odluka** — kriterijumi identifikuju da je scenario blokiran (OD-1 … OD-12), ali ne donose samu arhitektonsku odluku; ona se razrešava kroz PoC/upitnik (`otvorene_odluke.md`).
 - **MoSCoW i obim po klijentu** — konačan prioritet zavisi od popunjenog `upitnik-zahtevi.md` (učestalost/obim, zrelost klijenta), što kriterijumi ne mogu da pretpostave.

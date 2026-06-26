@@ -495,7 +495,7 @@ A5. **Streaming odgovor** — u koraku 2 i 6: korisnik je u zahtevu tražio stre
 5. Sistem proveri pristup korisnika modelu i datasetu (uloga, ABAC) i raspoloživu kvotu kroz hijerarhiju (institucija → korisnik).
 6. Sistem rezerviše procenjenu kvotu za posao, da paralelni submit ne potroši isti budžet.
 7. Sistem odredi izvršno okruženje prema veličini posla (Kubernetes Job za manje poslove ili SLURM job na PARADOX/ITE za velike) i stavi posao u red.
-> ⚠ Pravilo rutiranja „prema veličini posla" nije definisano u referentnim dokumentima. Otvoreno je po čemu se meri veličina (broj redova dataseta, procenjeni GPU sati, veličina ulaza) i gde je prag K8s/SLURM. Vezati za otvoreno pitanje rutiranja između klastera (popis.md, sekcija 5).
+> ⚠ Pravilo rutiranja „prema veličini posla" nije definisano u referentnim dokumentima. Otvoreno je po čemu se meri veličina (broj redova dataseta, procenjeni GPU sati, veličina ulaza) i gde je prag K8s/SLURM. Vezati za otvoreno pitanje rutiranja između klastera (popis_final.md, sekcija 5).
 8. Sistem kreira zapis posla u stanju **`U redu`** i prikaže potvrdu sa identifikatorom posla. → vidi: *Praćenje statusa i logova posla*
 
 **Alternativni tokovi:**
@@ -537,7 +537,7 @@ A3. **Vraćanje na podrazumevano** — u koraku 4: administrator izabere **„Vr
 **Naziv:** Deploy sopstvenog modela kao inference endpoint
 **Akter:** Prijavljen korisnik
 **Preduslov:** Korisnik je prijavljen preko Keycloak-a i ima pravo da deploy-uje modele; model je registrovan i otpremljen u MinIO i nalazi se u stanju **`Odobren`** (`approved`) ili **`Objavljen lokalno`** (`published locally`); postoji raspoloživ GPU kapacitet u serving pool-u.
-> ⚠ Ceo scenario je pretpostavka. Self-service deploy modela kao endpoint ne pominje se u referentnim dokumentima (funkcionalnosti.md, popis.md), a u referentnom stack-u (Themelio/GRNET) deploj velikih modela je eksplicitno odobren platformski servis, ne self-service akcija. Ovaj scenario ima smisla samo ako se usvoji dedicated/self-service serving model umesto deljenog upravljanog pool-a (vidi pretpostavku u scenariju „Pozivanje modela"). Do te odluke ovo je kandidat za kasniju fazu, ne za MVP. Pre finalizacije razrešiti i: (a) da li deploy zahteva odobrenje administratora, jer je GPU pool deljen i ograničen resurs; (b) da endpoint ne sme biti vidljiviji od modela (npr. `team` model iza `public` endpointa odao bi pristup modelu).
+> ⚠ Ceo scenario je pretpostavka. Self-service deploy modela kao endpoint ne pominje se u referentnim dokumentima (funkcionalnosti.md, popis_final.md), a u referentnom stack-u (Themelio/GRNET) deploj velikih modela je eksplicitno odobren platformski servis, ne self-service akcija. Ovaj scenario ima smisla samo ako se usvoji dedicated/self-service serving model umesto deljenog upravljanog pool-a (vidi pretpostavku u scenariju „Pozivanje modela"). Do te odluke ovo je kandidat za kasniju fazu, ne za MVP. Pre finalizacije razrešiti i: (a) da li deploy zahteva odobrenje administratora, jer je GPU pool deljen i ograničen resurs; (b) da endpoint ne sme biti vidljiviji od modela (npr. `team` model iza `public` endpointa odao bi pristup modelu).
 
 **Osnovni tok:**
 1. Prijavljen korisnik otvori **„Detalji resursa"** svog modela i izabere **„Deploy kao endpoint"**.
@@ -759,6 +759,29 @@ A2. **Signal za zaustavljanje ne prolazi odmah** — u koraku 8: klaster ne potv
 A3. **Odustajanje** — u koraku 5 ili 6: administrator napusti ekran bez potvrde; nijedna promena se ne upisuje; posao nastavlja da se izvršava.
 
 **Rezultat:** Posao je u stanju **`Prekinut`**, rezervisana kvota oslobođena a stvarna potrošnja do prekida obračunata; vlasnik je obavešten; ko, kada i zašto je zaustavio posao zabeleženo je u audit log.
+
+
+
+**Naziv:** Definisanje i pokretanje ML pipeline-a
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen i ima pravo na pokretanje poslova; ulazni resursi (dataset, bazni model) su registrovani u katalogu; korisnik ima dovoljnu kvotu.
+
+**Osnovni tok:**
+1. Prijavljen korisnik otvara **„Pipelines"** i klika **„Novi pipeline"**.
+2. Sistem prikazuje vizuelni editor pipeline-a sa listom dostupnih koraka (preprocesiranje / fine-tuning / evaluacija / registracija modela).
+3. Korisnik prevlači korake na platno i spaja ih strelicama (izlaz prethodnog koraka → ulaz sledećeg).
+4. Korisnik konfiguriše svaki korak: ulazni dataset/model, parametre, okruženje izvršavanja.
+5. Korisnik klika **„Pokreni pipeline"**.
+6. Sistem proverava ispravnost grafa (nema ciklusa, svi ulazi definisani), proverava pravo pristupa svakom ulaznom resursu i rezerviše kvotu za procenjeni ukupni trošak.
+7. Sistem kreira zapis pipeline-a u stanju **`U toku`** i počinje izvršavanje koraka redosledom; po završetku svakog koraka, rezultat se automatski prosleđuje kao ulaz sledećem.
+8. Po završetku poslednjeg koraka, sistem prikazuje rezultate i (ako je poslednji korak „Registracija") automatski registruje novi model sa lineage-om ka svim koracima pipeline-a.
+
+**Alternativni tokovi:**
+A1. **Jedan korak ne uspe** — u koraku 7: pipeline se zaustavlja na neuspelom koraku; korisnik vidi koji je korak pao i log greške; može ispraviti konfiguraciju i pokrenuti pipeline od tog koraka (re-run od tačke kvara, bez ponovnog izvršavanja prethodnih koraka).
+A2. **Nedovoljna kvota za procenjeni ukupni trošak** — u koraku 6: sistem prikazuje koliko kvote nedostaje i koji koraci su najskuplji; pipeline se ne pokreće.
+A3. **Složen pipeline (grananje/retry)** — u koraku 3: ako korisnik doda granu (jedan korak → dva paralelna koraka), sistem upozorava da složene pipeline-ove podržava samo Argo Workflows (Pilot), ne sopstveni scheduler; nudi da sačuva kao draft za kasniju fazu.
+
+**Rezultat:** Pipeline se izvršava automatski od prvog do poslednjeg koraka bez ručnih intervencija; svaki korak je upsian u audit log; rezultat poslednjeg koraka dostupan je u MinIO i (ako je registracija) u modelu sa punim lineage-om.
 
 
 ## 5. Model lifecycle — treniranje, fine-tuning, evaluacija, registracija
@@ -1200,6 +1223,26 @@ A2. **Korisnik odustaje** — na koraku 4: klikne **„Otkaži"**; član ostaje 
 A3. **Korisnik nema pravo uklanjanja** — na koraku 3: dugme **„Ukloni"** nije prikazano.
 
 **Rezultat:** Član je uklonjen iz projekta i više nema pristup njegovim resursima; uklanjanje je zabeleženo u audit logu.
+
+
+
+**Naziv:** Kreiranje tima unutar organizacije
+**Akter:** Predstavnik organizacije
+**Preduslov:** Predstavnik je prijavljen; organizacija je aktivna; ovaj scenario je dostupan tek kad platforma podrži timove (Pilot faza, vidi OD-14).
+
+**Osnovni tok:**
+1. Predstavnik organizacije otvara **„Moja organizacija"** → **„Timovi"** i klika **„Novi tim"**.
+2. Sistem prikazuje formu: naziv tima, opis, lider tima (iz liste članova organizacije), početna kvota tima (GPU sati, CPU sati, storage — iz pool-a organizacije).
+3. Predstavnik popunjava formu i klika **„Kreiraj tim"**.
+4. Sistem kreira tim, oduzima dodeljenu kvotu iz pool-a organizacije i dodeluje je pool-u tima, obaveštava lidera tima.
+5. Sistem prikazuje stranicu tima sa praznom listom članova i dodeljenom kvotom.
+
+**Alternativni tokovi:**
+A1. **Dodeljena kvota premašuje raspoloživi pool organizacije** — u koraku 3: sistem blokira kreiranje i prikazuje preostali slobodni pool; predstavnik smanjuje kvotu.
+A2. **Izabrani lider nije član organizacije** — u koraku 2: sistema ne dozvoljava; lider mora biti aktivan član organizacije.
+A3. **Predstavnik odustaje** — u koraku 2: klikne „Otkaži"; tim se ne kreira; pool ostaje nepromenjen.
+
+**Rezultat:** Tim je kreiran unutar organizacije sa delegiranom kvotom i liderom; predstavnik može dodavati članove organizacije u tim; lider tima može raspoređivati tim-kvotu između članova.
 
 
 ## 8. Edukacija i kursevi
@@ -1701,3 +1744,196 @@ A2. **Partnerska platforma nije dostupna** — na koraku 5: sistem prikazuje por
 A3. **Metapodaci resursa su neispravni** — na koraku 5: sistem odbija uvoz, prikazuje koja polja nisu ispravna i ne upisuje ništa u lokalni katalog.
 
 **Rezultat:** Resurs sa partnerske platforme je dostupan u lokalnom SAIFA katalogu sa oznakom porekla.
+
+
+
+**Naziv:** Onboarding novog federisanog partnera
+**Akter:** Platform administrator
+**Preduslov:** Administrator je prijavljen; postoji dogovor sa novom AI fabrikom/platformom o federisanoj razmeni; poznata je API šema partnera (ili je dostupna mock dokumentacija).
+
+**Osnovni tok:**
+1. Platform administrator otvara **„Federacija"** → **„Dodaj partnera"** u administratorskom panelu.
+2. Sistem prikazuje formu: naziv partnera, tip (Pharos / IT4LIA / CKAN / Dataverse / custom), bazni URL API-ja, kredencijali (client ID + secret ili mTLS sertifikat), interval automatskog sync-a.
+3. Administrator popunjava formu i klika **„Sačuvaj i testiraj vezu"**.
+4. Sistem pokreće test konekcije: šalje autentifikovan zahtev ka partnerskom API-ju i proverava da odgovor odgovara očekivanoj šemi.
+5. Test uspe; sistem kreira CatalogueSource adapter za novog partnera i prikazuje potvrdu.
+6. Administrator klika **„Pokreni inicijalni sync"**; sistem preuzima resurse sa partnerske platforme, validira šemu svakog resursa i upisuje prošle u katalog sa oznakom porekla.
+7. Sistem prikazuje izveštaj inicijalnog sync-a (uvezeno / preskočeno / greške).
+
+**Alternativni tokovi:**
+A1. **Test konekcije ne uspe** — u koraku 4: API ne odgovara ili vraća grešku autentikacije; sistem prikazuje detalje greške; partner se ne upisuje; administrator ispravlja kredencijale i ponavlja od koraka 3.
+A2. **Partnerska šema ne odgovara nijednom poznatom tipu** — u koraku 4: sistem detektuje nepoznatu šemu; administrator može izabrati „custom" tip i ručno mapirati polja; beleži se kao adapter sa ručnim mapiranjem.
+A3. **Inicijalni sync preuzima previše resursa** — u koraku 6: broj resursa premašuje konfigurisani limit; sistem preuzima prvih N i prikazuje upozorenje; administrator može podići limit ili filtrirati po tipu resursa.
+A4. **Administrator odustaje** — u koraku 2–3: klikne „Otkaži"; nijedan partner se ne dodaje.
+
+**Rezultat:** Nov federisani partner je registrovan u sistemu sa sopstvenim CatalogueSource adapterom; resursi sa partnerske platforme vidljivi su u katalogu sa oznakom porekla; automatski sync je konfigurisan; onboarding je upisan u audit log.
+
+
+## 11. Kontejneri
+
+
+**Naziv:** Registracija kontejner image-a
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen i ima ulogu koja mu dozvoljava registraciju kontejnera; ima ili Dockerfile ili želi da izabere bazni šablon.
+
+**Osnovni tok:**
+1. Prijavljen korisnik otvara **„Kontejneri"** i klika **„Novi kontejner"**.
+2. Sistem prikazuje formu sa dva puta: (a) upload Dockerfile-a ili (b) izbor baznog šablona iz liste odobrenih image-a (Python + PyTorch, Python + TensorFlow, i sl.).
+3. Korisnik bira put, unosi naziv i opis kontejnera i bira vidljivost.
+4. Korisnik klika **„Build"**.
+5. Sistem pokreće Kaniko build u izolovanom Kubernetes podu; prikazuje live log build-a.
+6. Build se završava; Harbor skenira image na ranjivosti.
+7. Ako skeniranje ne pronađe kritične ranjivosti, image se push-uje u Harbor sa generisanim tag-om (korisnik/naziv:v1); sistem prikazuje digest i potvrdu.
+
+**Alternativni tokovi:**
+A1. **Build ne uspe** — u koraku 5–6: Kaniko vraća grešku (npr. nedostaje zavisnost u Dockerfile-u); sistem prikazuje poslednji log i označava kontejner kao `Build neuspeo`; image se ne push-uje.
+A2. **Harbor skeniranje pronalazi kritičnu ranjivost** — u koraku 6: image se ne push-uje; sistem prikazuje listu CVE-a; korisnik mora ispraviti Dockerfile i pokrenuti novi build.
+A3. **Korisnik bira zaključan šablon** — u koraku 2: student ili početnik bira šablon koji ne dozvoljava izmenu baznog image-a; može samo dodati sopstvene Python pakete kroz requirements fajl.
+
+**Rezultat:** Kontejner image je registrovan u Harbor-u sa digest-om i tag-om; vidljiv je u katalogu prema odabranoj vidljivosti; skeniran je na ranjivosti; dostupan je za korišćenje u poslovima na Kubernetes pool-u i (kroz Apptainer konverziju) na HPC klasteru.
+
+
+
+**Naziv:** Pokretanje posla sa sopstvenim kontejnerom
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen; postoji registrovan kontejner image u Harbor-u sa statusom `Spreman`; korisnik ima kvotu za pokretanje posla.
+
+**Osnovni tok:**
+1. Prijavljen korisnik otvara **„Novi posao"** i u formi bira tip okruženja **„Kontejner"**.
+2. Sistem prikazuje listu kontejnera vidljivih korisniku (sopstveni + timski + platform-level).
+3. Korisnik bira kontejner, unosi ulazne podatke (dataset iz kataloga ili MinIO putanja) i komandu za pokretanje.
+4. Korisnik klika **„Pokreni posao"**.
+5. Sistem proverava pravo pristupa kontejneru i ulaznim podacima, rezerviše kvotu i određuje okruženje (Kubernetes ili SLURM prema pravilima rutiranja).
+6. Za Kubernetes: kontejner se pull-uje direktno iz Harbor-a. Za HPC/SLURM: sistem konvertuje Docker image u Apptainer (.sif) i preuzima ga na klaster ako već nije keširano.
+7. Sistem kreira zapis posla u stanju **`U redu`** i prikazuje potvrdu sa identifikatorom posla.
+
+**Alternativni tokovi:**
+A1. **Kontejner nije dostupan za HPC** — u koraku 6: Apptainer konverzija ne uspe ili klaster ne može da pull-uje image; sistem prikazuje grešku i savet da se proveri kompatibilnost image-a sa HPC okruženjem; posao se ne kreira.
+A2. **Korisnik nema pristup kontejneru** — u koraku 5: kontejner je `private` ili `team` a korisnik nije u timu; sistem vraća grešku pristupa.
+A3. **Nedovoljna kvota** — u koraku 5: ista logika kao kod redovnog posla; rezervacija ne uspe.
+
+**Rezultat:** Posao je pokrenut u izabranom kontejnerskom okruženju; kontejner je izolovan od ostatka sistema; dalji tok prati *Praćenje statusa i logova posla*.
+
+
+## 12. Statistike i dashboard
+
+
+**Naziv:** Pregled ličnog usage dashboarda
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen i ima bar jednu zabeleženu aktivnost.
+
+**Osnovni tok:**
+1. Prijavljen korisnik klika **„Moj dashboard"** u navigaciji.
+2. Sistem prikazuje pregled: potrošena i preostala kvota (GPU sati, CPU sati, storage, token budžet) za aktuelni vremenski prozor; broj aktivnih, završenih i neuspelih poslova; poslednjih 10 aktivnosti.
+3. Korisnik bira vremenski opseg (poslednja nedelja / mesec / custom).
+4. Sistem osvežava sve prikaze za izabrani opseg.
+5. Korisnik klika na aktivnost i otvara detalje (status, trajanje, potrošeni resursi, naziv resursa).
+
+**Alternativni tokovi:**
+A1. **Kvota pada ispod 20%** — sistem automatski prikazuje upozorenje na dashboardu i šalje in-app notifikaciju.
+A2. **Nema aktivnosti za izabrani period** — sistem prikazuje prazno stanje sa porukom i brzim linkom ka „Novi posao".
+A3. **Korisnik želi da ponovi posao** — sa detalja aktivnosti klika „Ponovi"; sistem otvara formu za novi posao sa prethodnim parametrima.
+
+**Rezultat:** Korisnik ima pregled sopstvene potrošnje, kvote i istorije aktivnosti za izabrani period; može odreagovati na upozorenje o kvoti pre nego što ostane bez resursa.
+
+
+
+**Naziv:** Pregled poslovnih statistika platforme (admin)
+**Akter:** Platform administrator
+**Preduslov:** Platform administrator je prijavljen.
+
+**Osnovni tok:**
+1. Platform administrator otvara **„Statistike"** u administratorskom panelu.
+2. Sistem prikazuje agregiranu sliku: ukupan broj korisnika (registrovani / aktivni / novi ovog meseca), distribucija po tipu (akademija / SME / javni sektor), broj aktivnih organizacija, broj objavljenih modela i dataseta.
+3. Administrator bira period (mesec / kvartal / godišnji opseg).
+4. Sistem prikazuje trendove: rast baze korisnika, GPU sati po projektu/organizaciji, potrošnja energije, broj inference poziva, distribucija po sektoru.
+5. Administrator klika **„Izvezi izveštaj"** i bira format (CSV / PDF).
+6. Sistem generiše fajl sa svim vidljivim metrikama za izabrani period i nudi download.
+
+**Alternativni tokovi:**
+A1. **Anomalija u potrošnji** — sistem automatski označava organizacije ili korisnike sa statistički neobičnom potrošnjom (>3σ od proseka) i prikazuje ih na posebnom tabu „Anomalije".
+A2. **EuroHPC izveštaj** — administrator klika na poseban tab „EuroHPC izveštaj"; sistem prikazuje predefinisane metrike koje EuroHPC traži (GPU sati, energija, korisnici, projekti) i nudi export u zahtevanom formatu.
+
+**Rezultat:** Administrator ima pregled ključnih metrika platforme za izabrani period; EuroHPC izveštaj se generiše bez ručnog kopiranja podataka.
+
+
+
+**Naziv:** Pregled statusa platforme
+**Akter:** Prijavljen korisnik (ili anonimni posetilac)
+**Preduslov:** Dostupna je javna status stranica.
+
+**Osnovni tok:**
+1. Korisnik otvara **„Status platforme"** iz navigacije ili footer-a portala (dostupno i bez prijave).
+2. Sistem prikazuje aktuelni status svakog ključnog servisa: inference pool · HPC bridge (PARADOX / ITE) · JupyterHub · katalog i pretraga · federacija (Pharos / IT4LIA) · autentikacija (Keycloak).
+3. Svaki servis prikazuje: `Operativan` / `Degradiran` / `Nedostupan`, vreme poslednje provere i kratku napomenu ako postoji incident.
+4. Korisnik klika na servis i vidi istoriju dostupnosti za poslednjih 30 dana.
+
+**Alternativni tokovi:**
+A1. **Servis je degradiran ili nedostupan** — sistem automatski prikazuje obaveštenje sa opisom incidenta i procenjenim vremenom oporavka (ako je poznato); korisnici koji su pretplaćeni primaju in-app notifikaciju.
+A2. **Admin vidi detaljni health dashboard** — platform administrator klika „Admin pogled"; vidi latencije po servisu, broj grešaka u poslednjih sat vremena, status poslednjeg HPC ping-a i poslednjeg federacijskog sync-a.
+
+**Rezultat:** Korisnik zna da li je problem na njegovoj strani ili na strani platforme, bez kontaktiranja podrške; administrator vidi detaljne metrike zdravlja sistema.
+
+
+
+**Naziv:** Prijava problema kroz ticketing
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen.
+
+**Osnovni tok:**
+1. Prijavljen korisnik klika **„Prijavi problem"** — dostupno iz navigacije i sa ekrana greške.
+2. Sistem prikazuje formu: naslov, opis, kategorija (inference / posao / katalog / pristup / ostalo), opcioni screenshot upload.
+3. Sistem automatski prilaže kontekst: uloga korisnika, poslednjih 5 aktivnosti iz audit loga, poruka o grešci (ako korisnik dolazi sa ekrana greške).
+4. Korisnik popunjava formu i klika **„Pošalji"**.
+5. Sistem kreira ticket (GitLab Issue ili interni helpdesk), šalje potvrdu korisniku sa brojem ticketa i obaveštava platformski tim.
+
+**Alternativni tokovi:**
+A1. **Problem se tiče konkretnog posla** — u koraku 2: korisnik može direktno sa stranice posla kliknuti „Prijavi problem sa ovim poslom"; sistem automatski upisuje ID posla i log poslednjeg pokušaja u formu.
+A2. **Anonimni korisnik** — sistem prikazuje kontakt email bez forme (ne može se priložiti audit kontekst bez sesije).
+
+**Rezultat:** Ticket je kreiran sa dovoljno konteksta da platformski tim može da reprodukuje problem; korisnik ima broj ticketa za praćenje; ticket je vidljiv u audit logu.
+
+
+## 13. Paralelno pokretanje i verifikacija
+
+
+**Naziv:** Paralelni submit više poslova
+**Akter:** Prijavljen korisnik
+**Preduslov:** Korisnik je prijavljen i ima dovoljnu kvotu za više paralelnih poslova.
+
+**Osnovni tok:**
+1. Prijavljen korisnik otvara **„Novi posao"** i popunjava konfiguraciju prvog posla.
+2. Korisnik klika **„Dodaj varijantu"**; sistem duplira formu i dozvoljava izmenu parametara (npr. drugi learning rate, drugi dataset).
+3. Korisnik ponovi korak 2 za svaku varijantu (do konfigurabilnog maksimuma, npr. 5).
+4. Korisnik klika **„Pokreni sve"**.
+5. Sistem proverava i atomično rezerviše zbir kvota za sve varijante; ako zbir prelazi kvotu, odbija submit sa prikazom koliko varijanata staje u preostalu kvotu.
+6. Sistem kreira jedan zapis „grupisanog posla" koji sadrži sve varijante kao pod-poslove; svaki pod-posao ide u red nezavisno.
+7. Sistem prikazuje pregled grupe sa statusom svakog pod-posla.
+
+**Alternativni tokovi:**
+A1. **Deo varijanata ne prođe proveru pristupa** — u koraku 5: jedna ili više varijanata koristi resurs kome korisnik nema pristup; sistem identifikuje problematične varijante i nudi da se one isključe pa ostatak pokrene.
+A2. **Jedan pod-posao ne uspe** — u koraku 6–7: neuspeh jednog pod-posla ne utiče na ostale; korisnik vidi status svakog pod-posla posebno i može ponovo pokrenuti samo neuspele.
+
+**Rezultat:** Više varijanata posla pokreće se nezavisno paralelno; korisnik prati napredak svih iz jednog prikaza „grupisanog posla"; neuspeh jedne varijante ne blokira ostale.
+
+
+
+**Naziv:** Nezavisna verifikacija rezultata benchmarka
+**Akter:** Model reviewer (dva nezavisna ocenjivača)
+**Preduslov:** Model je prošao evaluaciju na benchmark setu; postoje dva ili više reviewera sa ulogom `model-reviewer`; platforma je konfigurisana da zahteva N od M verifikacija pre objave leaderboard rezultata.
+
+**Osnovni tok:**
+1. Sistem detektuje da model ima nove benchmark rezultate i šalje notifikaciju svim model reviewer-ima.
+2. Reviewer A otvara **„Red za verifikaciju"** i izabere evaluacioni run.
+3. Sistem prikazuje: parametri evaluacije, benchmark verzija, metrike (sa reprodukcionim hashom run-a), izveštaj harness-a.
+4. Reviewer A proverava da li su parametri ispravni, metrike konzistentne i run reproduktivan (ponavlja evaluaciju ili prihvata hash).
+5. Reviewer A klika **„Potvrđujem"** ili **„Odbijam (uz obrazloženje)"**.
+6. Reviewer B prolazi isti tok nezavisno (ne vidi odluku Reviewer-a A dok i sam ne odluči).
+7. Sistem prihvata rezultate tek kad oba reviewera potvrde; ako postoji nesuglasica, otvara se diskusija između reviewera.
+
+**Alternativni tokovi:**
+A1. **Reviewer odbija rezultate** — u koraku 5: Reviewer A unosi obrazloženje (npr. sumnja na data leakage ili neusklađen benchmark set); sistem suspenduje run i obaveštava vlasnika modela.
+A2. **Nesuglasica između reviewera** — u koraku 7: jedan potvrđuje, drugi odbija; sistem eskalira na platform-admin koji donosi konačnu odluku.
+A3. **Samo jedan reviewer dostupan** — sistem čeka drugi potpis; vlasnik modela vidi status „Čeka drugu verifikaciju"; može zatražiti od admina da pronađe zamenu.
+
+**Rezultat:** Leaderboard objava zahteva saglasnost dva nezavisna reviewera; nijedan unilateralno ne može objaviti rezultat; nesuglasica se rešava eskalacijom; ceo tok je upisan u audit log.
