@@ -155,7 +155,7 @@ A5. **Korisnik odustane** — u bilo kom koraku pre potvrde: klikne „Otkaži";
 6. Lista članova se osvežava; uklonjena osoba više nije vidljiva na listi.
 
 **Alternativni tokovi:**
-A1. **Član ima aktivne pokrenute HPC poslove** — u koraku 4: dijalog eksplicitno navede broj aktivnih poslova i upozori „Pokrenuti poslovi će nastaviti do završetka, ali novi neće moći da se pokreću"; predstavnik potvrđuje ili odustaje.
+A1. **Član ima aktivne pokrenute AI factory poslove** — u koraku 4: dijalog eksplicitno navede broj aktivnih poslova i upozori „Pokrenuti poslovi će nastaviti do završetka, ali novi neće moći da se pokreću"; predstavnik potvrđuje ili odustaje.
 A2. **Član je vlasnik zajedničkih resursa tima** — u koraku 4: dijalog prikaže upozorenje „Ovaj korisnik je vlasnik [N] resursa deljenih sa organizacijom — resursi ostaju u katalogu, ali vlasništvo prelazi na vas kao predstavnika"; predstavnik potvrđuje ili odustaje.
 A3. **Predstavnik pokušava ukloniti samog sebe** — u koraku 2: opcija **„Ukloni iz organizacije"** nije dostupna pored sopstvenog imena; predstavnik mora zatražiti od platform administratora da promeni predstavnika pre nego što napusti organizaciju.
 A4. **Predstavnik odustane** — u koraku 4: klikne „Otkaži" u dijalogu; lista članova ostaje nepromenjena.
@@ -274,7 +274,7 @@ A4. **Administrator odustane** — u bilo kom koraku pre čuvanja: klikne **„O
 
 **Alternativni tokovi:**
 A1. **Korisnik je jedini predstavnik aktivne organizacije** — u koraku 5: sistem prikaže blokirajuće upozorenje „Ovaj korisnik je jedini predstavnik organizacije [naziv] — deaktivacija nije moguća dok organizacija nema drugog predstavnika"; administrator mora prvo dodeliti novog predstavnika, pa tek onda deaktivirati nalog.
-A2. **Korisnik ima pokrenute HPC poslove** — u koraku 5: dijalog eksplicitno navede broj aktivnih poslova i upozori da će biti zaustavljeni; administrator odlučuje da nastavi ili odustane.
+A2. **Korisnik ima pokrenute AI factory poslove** — u koraku 5: dijalog eksplicitno navede broj aktivnih poslova i upozori da će biti zaustavljeni; administrator odlučuje da nastavi ili odustane.
 A3. **Administrator odustane** — u koraku 5: klikne „Otkaži" u dijalogu; nalog ostaje aktivan, nikakva akcija se ne beleži.
 A4. **Nalog je već neaktivan** — u koraku 3: dugme **„Deaktiviraj nalog"** nije prikazano; umesto toga prikazuje se **„Aktiviraj nalog"** i datum prethodne deaktivacije.
 
@@ -320,12 +320,12 @@ A4. **Administrator odustane** — u bilo kom koraku pre čuvanja: klikne **„O
 4. Prikaže se pregled sesije: IP adresa, lokacija, uređaj, trajanje, lista aktivnih resursa (pokrenuti poslovi, otvorene sveske, aktivni endpointi).
 5. Administrator klikne **„Prisilno prekini sesiju"**.
 6. Prikaže se dijalog koji traži: izbor tipa akcije (**samo prekid sesije** / **prekid sesije + privremena blokada naloga**) i unos razloga; administrator popuni i klikne **„Potvrdi"**.
-7. Sistem trenutno poništi sve Keycloak tokene korisnika, zatvori aktivne sveske i suspenduje aktivne inference endpointe; HPC poslovi koji su već u izvršavanju nastavljaju do završetka (osim ako administrator nije odabrao opciju prisilnog zaustavljanja poslova u dijalogu).
+7. Sistem trenutno poništi sve Keycloak tokene korisnika, zatvori aktivne sveske i suspenduje aktivne inference endpointe; AI factory poslovi koji su već u izvršavanju nastavljaju do završetka (osim ako administrator nije odabrao opciju prisilnog zaustavljanja poslova u dijalogu).
 8. Korisnik pri sledećem zahtevu dobija poruku „Vaša sesija je istekla — prijavite se ponovo"; ako je nalog privremeno blokiran, prijava nije moguća.
 9. Portal prikaže administratoru potvrdu „Sesija je uspešno prekinuta" i zabeleži incident u audit log.
 
 **Alternativni tokovi:**
-A1. **Administrator odlučuje da i zaustavi aktivne HPC poslove** — u koraku 6: u dijalogu postavi kvačicu **„Zaustavi aktivne HPC poslove"**; sistem nakon prekida sesije pošalje signal za zaustavljanje svim poslovima korisnika na PARADOX/ITE; korisnik dobija email obaveštenje o zaustavljenim poslovima.
+A1. **Administrator odlučuje da i zaustavi aktivne AI factory poslove** — u koraku 6: u dijalogu postavi kvačicu **„Zaustavi aktivne AI factory poslove"**; sistem nakon prekida sesije pošalje signal za zaustavljanje svim poslovima korisnika na PARADOX/ITE; korisnik dobija email obaveštenje o zaustavljenim poslovima.
 A2. **Korisnik nema aktivnih sesija** — u koraku 2: korisnik se ne prikazuje na listi aktivnih sesija; administrator može pronaći korisnika u **„Svi korisnici"** i direktno deaktivirati nalog ako je potrebno.
 A3. **Administrator želi da opozove sesiju s korisničke stranice, ne iz liste sesija** — u koraku 1: administrator umesto liste sesija ode na **„Korisnici"** → pronađe korisnika → otvori detalje naloga → klikne karticu **„Aktivne sesije"** → klikne **„Prisilno prekini sesiju"**; dalje isto od koraka 6.
 A4. **Administrator odustane** — u koraku 6: klikne „Otkaži" u dijalogu; sesija ostaje aktivna, nikakva akcija se ne beleži.
@@ -510,7 +510,7 @@ A4. **Odustajanje** — u koraku 3 ili 4: korisnik napusti formu bez pokretanja;
 
 **Naziv:** Podešavanje rate limitinga (kvote)
 **Akter:** Platform administrator
-**Preduslov:** Platform administrator je prijavljen preko Keycloak-a i ima dozvolu za administraciju kvota; postoji entitet za koji se limit podešava — institucija (nivo afilijacije), korisnik unutar institucije, ili tip zahteva (`inference`, `HPC submit`, `federacija`).
+**Preduslov:** Platform administrator je prijavljen preko Keycloak-a i ima dozvolu za administraciju kvota; postoji entitet za koji se limit podešava — institucija (nivo afilijacije), korisnik unutar institucije, ili tip zahteva (`inference`, `AI factory submit`, `federacija`).
 
 **Osnovni tok:**
 1. Platform administrator otvori ekran **„Rate limiting"** i izabere nivo na kom podešava: karticu **„Po instituciji"**, **„Po korisniku"** ili **„Po tipu zahteva"**.
@@ -581,7 +581,7 @@ A4. **Odustajanje** — u koraku 4: administrator ne potvrdi; nijedna promena se
 **Rezultat:** Inference endpoint poslužuje novu verziju modela; pozivaoci nisu imali prekid (stara verzija ugašena tek po prebacivanju saobraćaja); zamena je upisana u audit log sa starom i novom verzijom.
 
 
-## 4. HPC i pokretanje poslova
+## 4. AI factory i pokretanje poslova
 
 
 **Naziv:** Pokretanje računski zahtevnog posla
@@ -1281,16 +1281,16 @@ A1. **Nema slobodnih resursa** — na koraku 4: sistem ne može da pokrene sesij
 A2. **Sesija je već aktivna** — na koraku 3: sistem detektuje postojeću aktivnu sesiju za ovog studenta i nudi **„Nastavi sesiju"** umesto pokretanja nove.
 A3. **Student je neaktivan** — tokom rada: sistem detektuje neaktivnost, upozorava studenta i gasi sesiju nakon isteka vremena; radni direktorijum ostaje sačuvan.
 
-**Rezultat:** Student ima aktivnu Jupyter sesiju sa učitanom sveskom, pristupom datasetu i konfiguriranim HPC pristupom u okviru limita nastavnog projekta.
+**Rezultat:** Student ima aktivnu Jupyter sesiju sa učitanom sveskom, pristupom datasetu i konfiguriranim AI factory pristupom u okviru limita nastavnog projekta.
 
 
 
-**Naziv:** Pokretanje unapred konfiguriranog HPC posla u lab vežbi
+**Naziv:** Pokretanje unapred konfiguriranog AI factory posla u lab vežbi
 **Akter:** Student
 **Preduslov:** Student je prijavljen, ima aktivnu Jupyter sesiju u okviru lab vežbe, i vežba sadrži unapred konfigurisan SLURM šablon.
 
 **Osnovni tok:**
-1. Student izvršava ćeliju u svesci koja pokreće HPC posao.
+1. Student izvršava ćeliju u svesci koja pokreće AI factory posao.
 2. Sistem šalje posao na PARADOX/ITE koristeći zaključani SLURM šablon (student ne vidi niti menja SLURM skriptu).
 3. Sistem prikazuje u svesci status posla: „Posao u redu čekanja".
 4. Status se menja u „Posao se izvršava".
@@ -1415,13 +1415,13 @@ A2. **Korisnik nema deploy-ovanih endpointa** — na koraku 2: sistem prikazuje 
 
 **Osnovni tok:**
 1. Korisnik otvara **„Moja aktivnost"** u svom panelu.
-2. Sistem prikazuje hronološku listu aktivnosti: HPC poslovi, inference zahtevi i preuzimanja resursa.
+2. Sistem prikazuje hronološku listu aktivnosti: AI factory poslovi, inference zahtevi i preuzimanja resursa.
 3. Korisnik filtrira po tipu aktivnosti ili vremenskom opsegu.
 4. Korisnik klikne na zapis da vidi detalje (status, trajanje, potrošeni resursi, naziv resursa).
 
 **Alternativni tokovi:**
 A1. **Nema aktivnosti za odabrani filter** — na koraku 3: sistem prikazuje poruku „Nema zabeleženih aktivnosti za odabrane kriterijume."
-A2. **Korisnik želi da ponovi HPC posao** — na koraku 4: klikne **„Ponovi"**; sistem otvara formu za novi posao sa prethodnim parametrima unapred popunjenim. → vidi: *Pokretanje računski zahtevnog posla*
+A2. **Korisnik želi da ponovi AI factory posao** — na koraku 4: klikne **„Ponovi"**; sistem otvara formu za novi posao sa prethodnim parametrima unapred popunjenim. → vidi: *Pokretanje računski zahtevnog posla*
 
 **Rezultat:** Korisnik ima pregled sopstvene istorije aktivnosti na platformi.
 
