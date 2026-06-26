@@ -6,7 +6,7 @@ SAIFA AI Gateway nije skup funkcionalnosti koje se pišu od nule, već **integra
 
 > **Reuse before build. Integrate before replace. Custom samo tamo gde postoji SAIFA-specifična vrednost.**
 
-Ovaj dokument je sažeta odluka „gotovo ili custom" po sloju. Detaljna evaluacija opcija i kriterijumi eliminacije su u `popis.md`, „definition of done" i faze po funkcionalnosti u `funkcionalnosti.md`, a scenariji u `SAIFA_use_cases_final.md`.
+Ovaj dokument je sažeta odluka „gotovo ili custom" po sloju. Detaljna evaluacija opcija i kriterijumi eliminacije su u `popis_final.md`, „definition of done" i faze po funkcionalnosti u `funkcionalnosti.md`, a scenariji u `SAIFA_use_cases_final.md`.
 
 ## 2. Gotovo vs. custom po sloju
 

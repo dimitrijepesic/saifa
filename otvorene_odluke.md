@@ -18,6 +18,8 @@ Ovo su pitanja koja još nisu zatvorena, a utiču na to koji scenariji ulaze u M
 | OD-10 | Sme li se verzija modela sačuvati sa nepotpunim lineage-om? | Later |
 | OD-11 | Rollback aliasa dira živu instancu ili samo pokazivač? | Later |
 | OD-12 | Sme li leaderboard da meša verzije benchmarka? | Later |
+| OD-13 | Naplata (billing) za komercijalne korisnike? | Later |
+| OD-14 | Timovi/odeljenja unutar organizacije? | MVP → Pilot |
 
 ---
 
@@ -64,7 +66,7 @@ Ovo su pitanja koja još nisu zatvorena, a utiču na to koji scenariji ulaze u M
 **Blokira:** INF-UC-002, AIF-UC-001.
 **Opcije:**
 - (a) numerički prag (procenjeni GPU sati / veličina ulaza) — traži definiciju praga;
-- (b) **rutiranje po tipu posla** — interaktivno/kratko → Kubernetes GPU pool, batch/veliko → SLURM (*preporuka*, `popis.md` sek. 15);
+- (b) **rutiranje po tipu posla** — interaktivno/kratko → Kubernetes GPU pool, batch/veliko → SLURM (*preporuka*, `popis_final.md` sek. 15);
 - (c) korisnik bira između dopuštenih klastera (uz compute-to-data ograničenje).
 
 **Faza:** MVP.
@@ -166,6 +168,34 @@ Ovo su pitanja koja još nisu zatvorena, a utiču na to koji scenariji ulaze u M
 - (b) dozvoliti mešanje uz jasnu oznaku verzije po redu.
 
 **Faza:** Later.
+
+---
+
+### OD-13 — Naplata (billing)
+
+**Pitanje:** Da li platforma uvodi model naplate (billing) za komercijalne korisnike (SME/startup)?
+**Blokira:** ne blokira nijedan MVP use case; tiče se svih koji troše kvotu (INF-UC-001, INF-UC-002, AIF-UC-001, INF-UC-003, USG-UC-001).
+**Opcije:**
+- (a) **nema naplate u MVP/Pilot** — kvote su administrativna kontrola, ne finansijska transakcija (*preporuka za sada*);
+- (b) pay-per-use za SME/startup uz billing servis (faktura, payment gateway, kredit);
+- (c) prepaid kredit — organizacija kupuje kredit i troši ga kroz kvotu.
+
+Merenje već postoji (GPU sati i tokeni se beleže po korisniku/projektu), ali finansijska transakcija traži zaseban billing servis, payment provider i pravni okvir — ADR sa pravnim timom pre implementacije.
+**Faza:** Later (značajna pravna i operativna složenost).
+
+---
+
+### OD-14 — Timovi/odeljenja unutar organizacije
+
+**Pitanje:** Da li se uvode timovi/odeljenja kao pod-entiteti unutar organizacije, i kada?
+**Blokira:** ORG-UC-011 (Kreiranje tima); posredno svi use case-ovi sa `team` vidljivošću i kvotom.
+**Opcije:**
+- (a) **MVP: ravna organizacija** (organizacija → član), bez timova — jednostavnije (*preporuka za MVP*, `popis_final.md` §8a);
+- (b) Pilot: organizacija → tim (delegirana kvota, lider tima) → član — za institucije sa jasnom sub-strukturom (fakultet → katedra → istraživačka grupa);
+- (c) odmah u MVP ako upitnik pokaže da rad bez timova ne funkcioniše.
+
+Pilot varijanta traži tronivovsku kvotu i nove use case-ove za lidera tima.
+**Faza:** MVP (a) → Pilot (b) ako upitnik potvrdi potrebu.
 
 ---
 
