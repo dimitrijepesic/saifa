@@ -180,34 +180,34 @@ Federation & Catalogue exchange, metadata mapping, identity brokering, cross-fac
 
 \begin{table*}[t]
 \centering
-\caption{Possible tools for each part and work needed for the gateway}
+\caption{Possible tools for each part and work needed for the gateway\chg{, based on~\cite{saifa_d31}}}
 \label{tab:tools}
 \footnotesize
 \renewcommand{\arraystretch}{1.0}
 \setlength{\tabcolsep}{4pt}
 \newcommand{\grp}[1]{\multicolumn{3}{|l|}{\cellcolor{gray!12}\textbf{\textit{#1}}} \\ \hline}
-\begin{tabular}{|>{\raggedright\arraybackslash}p{2.9cm}|>{\raggedright\arraybackslash}p{7.0cm}|>{\raggedright\arraybackslash}p{6.5cm}|}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{2.9cm}|>{\raggedright\arraybackslash}p{6.1cm}|>{\raggedright\arraybackslash}p{7.4cm}|}
 \hline
 \rowcolor{gray!30}
-\textbf{Part} & \textbf{Main option (alternatives)} & \textbf{Work needed for the gateway} \\ \hline
+\textbf{Part} & \textbf{Main option} & \textbf{Work needed for the gateway} \\ \hline
 \grp{User access}
-Portal \& UX & Next.js/React (Nuxt/Vue) & Unified UI, backend-for-frontend, tool embedding \\ \hline
-Identity \& policies & Keycloak (authentik, WSO2 IS); Open Policy Agent (Casbin, Cedar) & Role mapping, ABAC attributes, account linking, policy model \\ \hline
-Notebooks & JupyterHub + KubeSpawner (SlurmSpawner, code-server) & Launch from portal, quotas, dataset mount, audit \\ \hline
+Portal \& UX & \leavevmode\chg{Next.js/React} & Unified UI, backend-for-frontend, tool embedding \\ \hline
+Identity \& policies & \leavevmode\chg{Keycloak; Open Policy Agent} & Role mapping, ABAC attributes, account linking, policy model \\ \hline
+Notebooks & \leavevmode\chg{JupyterHub + KubeSpawner} & Launch from portal, quotas, dataset mount, audit \\ \hline
 \grp{Data and models}
-Catalogue \& search & CKAN or Dataverse (DataHub, OpenMetadata); OpenSearch + pgvector & Unified catalogue, ACL filtering in index, federation \\ \hline
-Model registry \& experiments & MLflow (ClearML, Aim) & Model cards, approval workflow, access rights \\ \hline
-Storage & PostgreSQL, S3-compatible object store (MinIO/Ceph), Valkey & Metadata links, lifecycle, retention \\ \hline
+Catalogue \& search & \leavevmode\chg{CKAN or Dataverse; OpenSearch + pgvector} & Unified catalogue, ACL filtering in index, federation \\ \hline
+Model registry \& experiments & \leavevmode\chg{MLflow} & Model cards, approval workflow, access rights \\ \hline
+Storage & \leavevmode\chg{PostgreSQL, S3 storage on MinIO/Ceph, Valkey} & Metadata links, lifecycle, retention \\ \hline
 Lineage & OpenLineage + Marquez & Links between jobs, datasets, models and results \\ \hline
 \grp{Compute and inference}
-LLM inference \& serving & vLLM (TGI, SGLang, Triton); KServe (Ray Serve, BentoML) & API proxy, quotas, routing, audit \\ \hline
-Fine-tuning & Hugging Face TRL/PEFT (Axolotl, LLaMA-Factory) & Approved templates, HPC submission, result registration \\ \hline
-HPC \& batch & SLURM, Open OnDemand; Kubernetes Jobs (Volcano, Kueue) & HPC bridge, unified job model, SLURM/K8s routing \\ \hline
-Workflows \& containers & Argo Workflows (Airflow, Flyte); Harbor + Trivy, Apptainer on HPC & Workflow templates, image approval and HPC conversion \\ \hline
+LLM inference \& serving & \leavevmode\chg{vLLM; KServe} & API proxy, quotas, routing, audit \\ \hline
+Fine-tuning & \leavevmode\chg{Hugging Face TRL/PEFT} & Approved templates, HPC submission, result registration \\ \hline
+HPC \& batch & \leavevmode\chg{SLURM, Open OnDemand; Kubernetes Jobs} & HPC bridge, unified job model, SLURM/K8s routing \\ \hline
+Workflows \& containers & \leavevmode\chg{Argo Workflows; Harbor + Trivy, Apptainer on HPC} & Workflow templates, image approval and HPC conversion \\ \hline
 \grp{Operations and federation}
 Observability \& audit & Prometheus, Grafana, Loki, OpenTelemetry; append-only log + WORM archive & Correlation with user/job, shared audit events \\ \hline
-Learning \& support & Moodle (Open edX); Zammad or GLPI & Portal links, lab quotas, contextual tickets \\ \hline
-Federation \& accounting & DCAT/DCAT-AP adapters (CKAN harvester); Waldur as cross-layer option & Partner adapters, per-factory accounting \\ \hline
+Learning \& support & \leavevmode\chg{Moodle; Zammad or GLPI} & Portal links, lab quotas, contextual tickets \\ \hline
+Federation \& accounting & \leavevmode\chg{DCAT/DCAT-AP adapters; Waldur as cross-layer option} & Partner adapters, per-factory accounting \\ \hline
 \end{tabular}
 \end{table*}
 
@@ -229,7 +229,7 @@ A Factory mostly \emph{publishes} its services and resources to European platfor
 
 \chg{Three existing solutions already cover part of the model: Waldur, a platform for projects, allocation and accounting on cloud and HPC systems~\cite{waldur_docs}; Open OnDemand, a web portal for HPC centres~\cite{hudak2018ood}; and the EFP~\cite{eurohpc_efp}, itself built on MyAccessID, Waldur and Open OnDemand~\cite{nortamo2025efp}; Table~\ref{tab:func} shows their coverage. Login, projects, allocation, accounting and interactive HPC work mostly need configuration. None of them covers the AI-specific functions (dataset and model review, inference with quotas, experiment lineage) or sends an Antenna's work to linked Factories with usage kept for each Factory. These functions, and the shared rules for access, quotas and metadata, are what the model adds and where most new development is needed.}
 
-\chg{Existing tools are used first, and new ones are built only when needed.} Table~\ref{tab:tools} gives the main option for each part, alternatives in brackets, and the work that each gateway still has to do itself. Most options are well known open-source projects, for example JupyterHub~\cite{kluyver2016jupyter,jupyterhub_docs}, MLflow~\cite{zaharia2018mlflow}, vLLM~\cite{kwon2023vllm} and Open OnDemand~\cite{hudak2018ood}.
+\chg{Existing tools are used first, and new ones are built only when needed.} Table~\ref{tab:tools} gives the main option for each part and the work that each gateway still has to do itself\chg{; alternatives are listed in~\cite{saifa_d31}}. Most options are well known open-source projects, for example JupyterHub~\cite{kluyver2016jupyter,jupyterhub_docs}, MLflow~\cite{zaharia2018mlflow}, vLLM~\cite{kwon2023vllm} and Open OnDemand~\cite{hudak2018ood}.
 
 Tools are chosen in two steps. First, each tool must meet the basic requirements for its area, \chg{for example login through both SAML2 and OIDC linked to one account, immediate revocation of access, and one adapter for each new partner.} Second, the tools that pass are compared by ease of use, \chg{integration and operating effort,} speed and cost, maturity, and legal issues (GDPR, data location, licences). Open-source tools that can run on our own servers are preferred.
 
