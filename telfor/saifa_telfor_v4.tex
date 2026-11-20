@@ -1,0 +1,260 @@
+\documentclass[conference,a4paper]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% T1 encoding so that every glyph (including | in Fig. 1) comes from Times
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{url}
+% allow long URLs in the references to break after any character
+\makeatletter
+\g@addto@macro{\UrlBreaks}{\do\-\do\_\do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j\do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t\do\u\do\v\do\w\do\x\do\y\do\z\do\0\do\1\do\2\do\3\do\4\do\5\do\6\do\7\do\8\do\9}
+\makeatother
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,arrows.meta,calc}
+
+% Two outputs from one source:
+%   pdflatex saifa_telfor_v4.tex                                -> clean version
+%   pdflatex -jobname=saifa_telfor_v4_izmene saifa_telfor_v4.tex -> changes marked
+\newif\ifizmene
+\edef\izmenejob{\detokenize{saifa_telfor_v4_izmene}}
+\edef\currentjob{\jobname}
+\ifx\izmenejob\currentjob \izmenetrue \fi
+% Markers from earlier rounds (v1-v3) stay in the source but are shown without color in v4:
+% \chg (first review), \dop (filled in from documentation), \roz (internal read-through),
+% \nov (second review), \tri (third read-through)
+\DeclareRobustCommand{\chg}[1]{#1}
+\DeclareRobustCommand{\dop}[1]{#1}
+\DeclareRobustCommand{\roz}[1]{#1}
+\DeclareRobustCommand{\nov}[1]{#1}
+\DeclareRobustCommand{\tri}[1]{#1}
+\DeclareRobustCommand{\todo}[1]{{\color{red}#1}}
+% \fin: changes for the final version after the TELFOR reviews (teal)
+\definecolor{finalna}{RGB}{0,128,128}
+\DeclareRobustCommand{\fin}[1]{\ifizmene{\color{finalna}#1}\else#1\fi}
+% coverage marks for Table II
+\newcommand{\cfull}{\tikz[baseline=-0.6ex]\fill (0,0) circle (2.1pt);}
+\newcommand{\chalf}{\tikz[baseline=-0.6ex]{\draw[line width=0.4pt] (0,0) circle (2.1pt); \fill (0,0) -- (90:2.1pt) arc[start angle=90, end angle=270, radius=2.1pt] -- cycle;}}
+\newcommand{\cnone}{\tikz[baseline=-0.6ex]\draw[line width=0.4pt] (0,0) circle (2.1pt);}
+
+\begin{document}
+
+\title{AI Gateways for EuroHPC AI Factories and Antennas: Functions, Tools and the SAIFA Example%
+\thanks{\fin{This work has received funding from the European High Performance Computing Joint Undertaking (EuroHPC JU) under grant agreement No~101263280. The research was partially conducted in the premises of the Palace of Science, Miodrag Kosti\'c Endowment -- Centre for Applied Artificial Intelligence.}}}
+
+\author{
+\IEEEauthorblockN{Aleksandra Stojanovi\'c}
+\IEEEauthorblockA{\fin{\textit{University of Belgrade --}} \\
+\fin{\textit{School of Electrical Engineering}}\\
+Belgrade, Serbia \\
+sa230234d@student.etf.bg.ac.rs}
+\and
+\IEEEauthorblockN{Dimitrije Pe\v{s}i\'c}
+\IEEEauthorblockA{\fin{\textit{University of Belgrade --}} \\
+\fin{\textit{School of Electrical Engineering}}\\
+Belgrade, Serbia \\
+pd230014d@student.etf.bg.ac.rs}
+\and
+\IEEEauthorblockN{Zaharije Radivojevi\'c}
+\IEEEauthorblockA{\fin{\textit{University of Belgrade --}} \\
+\fin{\textit{School of Electrical Engineering}}\\
+Belgrade, Serbia \\
+zaki@etf.rs}
+}
+
+\maketitle
+\bstctlcite{IEEEexample:BSTcontrol}
+
+\begin{abstract}
+The EuroHPC AI Factories initiative \nov{aims to build} a network of AI supercomputing centres in Europe, and AI Factory Antennas \nov{are to} bring their services to countries \nov{that do not host an AI Factory}. \nov{Users will reach these services through several separate access points, and an AI gateway can bring them together. This paper defines ten groups of functions that such a gateway needs,} \chg{compares them with} \roz{three existing solutions,} \chg{Waldur, Open OnDemand and the EuroHPC Federation Platform,} \nov{and lists possible open-source tools. It then presents an architectural proposal for the \emph{AI gateway} of the Serbian AI Factory Antenna (SAIFA). What is new for an Antenna is that one gateway has to work both with local resources, which it manages, and with the infrastructure of independent partner Factories (Pharos and IT4LIA). The proposal specifies which tasks the gateway performs itself and which system decides on access, allocation and accounting. It is based on the SAIFA \tri{gateway} design \tri{document} and has not yet been implemented or evaluated.}
+\end{abstract}
+
+\begin{IEEEkeywords}
+AI Factory, AI Factory Antenna, AI gateway, EuroHPC, federation, high-performance computing, MLOps, science gateway.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Modern artificial intelligence (AI) research needs large computing resources. To give such resources to more users, the EuroHPC Joint Undertaking (JU) started the AI Factories initiative. By October 2025, 19 AI Factories had been selected. \nov{They are being set up gradually, and each is to host an AI-optimised supercomputer and offer} \roz{services such as data management, help with model development, training} and expert support~\cite{eurohpc_aif,eurohpc_six_aif}. In October 2025, 13 AI Factory Antennas were also selected to bring these services to more countries. Each is linked with one or more AI Factories~\cite{eurohpc_antennas,eurohpc_antennas_page}.
+
+\nov{Access to large computing resources has long been difficult for many users. Grid and high-performance computing (HPC) systems required command-line tools, certificates and different procedures at each site, and science gateways were developed to give users simple web access to them}~\cite{wilkinsdiehr2007,hudak2018ood}\nov{. The AI Factory network may repeat this problem, because its services will be reached through many separate access points. Startups, small and medium-sized enterprises (SMEs), researchers and public institutions may have to use different portals, accounts and application procedures before they can run one experiment. A gateway for AI services also has to support the whole model development process, safe sharing of data and models, and access to large language models (LLMs).}
+
+\nov{In this paper, we propose an architecture for the AI gateway of the Serbian AI Factory Antenna (SAIFA)~\cite{cordis_saifa,saifa_d31}, which is linked with Pharos and IT4LIA, and compare it with existing solutions. The function groups, the comparison with existing solutions and the candidate tools are relevant to AI gateways in general, while the architecture is proposed for SAIFA. Antennas were introduced only in 2025, and \tri{no gateway designed for their role has been published yet}. The SAIFA gateway manages quotas and accounting for local resources, but it also has to work with the resources of independent partner Factories, which keep their own platforms and access rules. \fin{The paper makes three contributions: (i) ten function groups, compared with three existing solutions; (ii) an architecture that can use Waldur and Open OnDemand as components and adds the AI-specific functions they lack or offer only in part; and (iii) an assignment of each function to the gateway, an existing system or a partner, showing which system makes the final decision on access, allocation and accounting.}}
+
+\section{\nov{Access Points in the AI Factory Network}}
+\label{sec:access}
+
+\subsection{AI Factories}
+AI Factories \nov{will be} run by national host organisations around EuroHPC supercomputers. The JU lists the services they \nov{are to} offer~\cite{eurohpc_aif_services}\nov{, including expert help, AI-optimised computing, data management, training and AI software}. Computing time is given through EuroHPC access calls \roz{in four modes}~\cite{eurohpc_aif_access}\roz{: \emph{Playground} and \emph{Fast Lane}} \nov{for} \roz{startups and SMEs, \emph{Large Scale}} \nov{for work above} \roz{50,000 GPU hours, and \emph{AI for Science and Collaborative EU Projects} for scientific and public sector users}. Each Factory \nov{will} also \nov{have} its own \roz{contact point} and its own rules for users. \roz{For example, Pharos in Greece} \nov{plans} \roz{a Front Desk as its central contact point}~\cite{eurohpc_pharos}.
+
+\subsection{AI Factory Antennas}
+Antennas \nov{are to} extend the services of \nov{the} AI Factories~\cite{eurohpc_antennas_page}. An Antenna \nov{is expected to offer} a national entry point, smaller local computing resources, AI test environments, help for specific sectors and training. \nov{For large jobs, it will use the resources of its linked Factories.} One Factory can work with several Antennas \chg{and vice versa:} \nov{Pharos is linked with} four Antennas (Pharos-CY, CALYPSO, VEZILKA and SAIFA), and the Swiss Antenna HEARTS \chg{with} four Factories~\cite{eurohpc_antennas}.
+
+\subsection{Shared European platforms}
+The first version of the EuroHPC Federation Platform (EFP) was \chg{released} in April 2026 \nov{to reduce differences in access procedures between EuroHPC sites}. \roz{It gives users one entry point and one login for several EuroHPC systems.} \nov{It also supports resource requests, data transfer and a shared software catalogue.} \roz{AI Factories are not yet part of it and will be connected in later versions}~\cite{eurohpc_efp}. The AI-on-Demand Platform is a European catalogue where users can find AI resources~\cite{aiod}. Table~\ref{tab:landscape} \roz{summarises all access points}.
+
+\begin{table}[!h]
+\centering
+\caption{Access points in the AI Factory network}
+\label{tab:landscape}
+\scriptsize
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.65cm}>{\raggedright\arraybackslash}p{5.35cm}@{}}
+\toprule
+\textbf{Access point} & \textbf{What it offers to the user} \\
+\midrule
+EuroHPC access calls & Applying for computing time (four modes) \\
+EuroHPC Federation Platform & One login, common allocation, data transfer and software catalogue for EuroHPC systems \\
+AI Factory contact office & Consulting, expert help, training, data services and computing at a national site \\
+AI Factory Antenna & National entry point, local computing, help for new users, link to partner Factories \\
+AI-on-Demand Platform & European catalogue of AI resources \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chg{These access points cover different needs,} \nov{and the SAIFA gateway is meant to connect to them, not replace them. It sends users and jobs to partner Factories, can list approved resources in the AI-on-Demand Platform}~\cite{saifa_d31}\nov{, and should reuse EFP login and allocation once AI Factories join it.}
+
+\section{\nov{Proposed SAIFA AI Gateway Architecture}}
+\label{sec:model}
+
+\nov{The proposed} gateway works as \emph{middleware}. It receives requests from users or applications, \roz{checks all of them against common rules for} identity, access and metadata, and \roz{routes} each request to the \roz{appropriate} service. \roz{Fig.~\ref{fig:arch} shows its main parts.} \nov{The actual work is still done by existing systems (schedulers, storage, model servers) and by partner platforms.}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=6mm, inner sep=1.5pt},
+  core/.style={box, fill=gray!12},
+  >={Stealth[length=1.6mm]}
+]
+\node[box, minimum width=8cm] (users) at (4,0) {Users: researchers, startups/SMEs, public sector, learners};
+\node[box, minimum width=8cm] (portal) at (4,-0.8) {Web portal \quad\textbar\quad REST API \quad\textbar\quad notebooks};
+\node[font=\scriptsize\bfseries, anchor=west] (gwt) at (0.1,-1.6) {\nov{SAIFA AI gateway (Antenna)}};
+\node[core, text width=1.6cm] (iam)   at (1.05,-2.28) {Identity \& access\\(RBAC/ABAC)};
+\node[core, text width=1.6cm] (cat)   at (3.0,-2.28) {Catalogue \&\\metadata};
+\node[core, text width=1.6cm] (quota) at (4.95,-2.28) {Quota \&\\accounting};
+\node[core, text width=1.6cm] (audit) at (6.9,-2.28) {Audit, \roz{lineage},\\monitoring};
+\node[core, minimum width=3.65cm] (route) at (2.0,-3.13) {Request validation \& routing};
+\node[core, minimum width=3.65cm] (fed)   at (5.95,-3.13) {Federation adapters};
+\node[draw, dashed, rounded corners=3pt, fit=(gwt)(iam)(audit)(route)(fed), inner sep=1.5mm] (gw) {};
+\foreach \n/\x/\t in {hpc/0.65/{HPC\\(SLURM)}, k8s/2.07/{Kubernetes\\cloud}, serve/3.49/{Model\\serving}, store/4.91/{Object\\storage}, lms/6.33/{\roz{Learning},\\helpdesk}}
+  \node[box, minimum width=1.3cm, text width=1.22cm] (\n) at (\x,-4.25) {\t};
+\node[font=\scriptsize\itshape, anchor=west] at (0,-4.8) {Local resources};
+\node[box, minimum width=8cm, fill=gray!5, text width=7.8cm] (aif) at (4,-5.4) {\nov{Independent partner Factories (Pharos, IT4LIA)}\\EuroHPC Federation Platform \textbar\ AI-on-Demand};
+\draw[<->] (users) -- (portal);
+\draw[<->] (portal) -- (portal |- gw.north);
+\foreach \n in {hpc,k8s,serve,store,lms} \draw[<->] (gw.south -| \n) -- (\n);
+\draw[<->] (7.55,-3.13 |- fed.south) -- (7.55,-3.13 |- aif.north);
+\end{tikzpicture}
+\caption{\nov{Proposed architecture of the SAIFA AI gateway between users, local resources, partner Factories and European services.}}
+\label{fig:arch}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Main function groups \chg{and their coverage by existing solutions}}
+\label{tab:func}
+\footnotesize
+\renewcommand{\arraystretch}{1.0}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.6cm}p{5.7cm}ccc@{}}
+\toprule
+\textbf{Group} & \textbf{Main features} & \chg{\textbf{W}} & \chg{\textbf{O}} & \chg{\textbf{E}} \\
+\midrule
+Identity \& access & Institutional (eduGAIN) and EuroHPC sign-in, account linking, RBAC/ABAC, scoped API tokens, revocation & \nov{\cfull} & \chg{\chalf} & \nov{\chalf} \\
+Organisations \& projects & Workspaces, membership, roles, resource visibility (private, project, platform, public) & \chg{\cfull} & \fin{\chalf} & \chg{\chalf} \\
+Catalogue & Search of models, datasets, workflows, services and courses; source attribution of federated entries & \chg{\chalf} & \chg{\cnone} & \chg{\chalf} \\
+Data \& model management & Resumable upload, versioning, model and data cards, review and publication workflow & \chg{\cnone} & \chg{\chalf} & \chg{\chalf} \\
+Compute jobs & Job templates, quota reservation, routing to HPC or Kubernetes, status, logs, result retrieval & \chg{\chalf} & \chg{\cfull} & \fin{\chalf} \\
+Inference & Authenticated, rate-limited access to served models and LLMs & \nov{\chalf} & \chg{\cnone} & \chg{\cnone} \\
+Experiments \& MLOps & Experiment tracking, run comparison, benchmark evaluation, lineage across job, dataset and model & \chg{\cnone} & \chg{\cnone} & \chg{\cnone} \\
+Training & Courses, learning paths, preconfigured notebook labs with controlled resources & \chg{\cnone} & \chg{\dop{\chalf}} & \chg{\cnone} \\
+Operations & Monitoring, usage accounting, audit trail, notifications, contextual helpdesk tickets & \chg{\chalf} & \nov{\chalf} & \chg{\dop{\chalf}} \\
+Federation & Catalogue exchange, metadata mapping, identity brokering, \roz{cross-Factory} execution and accounting & \chg{\chalf} & \chg{\dop{\cnone}} & \chg{\dop{\chalf}} \\
+\bottomrule
+\end{tabular}
+
+\vspace{3pt}
+\parbox{\columnwidth}{\scriptsize\raggedright \chg{W: Waldur}\roz{~\cite{waldur_docs}}\chg{, O: Open OnDemand}\nov{~\cite{hudak2018ood,ood_docs}}\chg{, E: EFP}\dop{~\cite{eurohpc_efp_page}}. \fin{\cfull{} more than half of the listed features available, \chalf{} at least one available or partly available, \cnone{} none (new development).}}
+\end{table}
+
+\begin{table*}[t]
+\centering
+\caption{Possible tools for each part and work needed for the gateway\chg{, based on~\cite{saifa_d31}}}
+\label{tab:tools}
+\scriptsize
+\renewcommand{\arraystretch}{1.0}
+\setlength{\tabcolsep}{4pt}
+\newcommand{\grp}[1]{\multicolumn{3}{|l|}{\cellcolor{gray!12}\textbf{\textit{#1}}} \\ \hline}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}p{6.2cm}|>{\raggedright\arraybackslash}p{7.45cm}|}
+\hline
+\rowcolor{gray!30}
+\textbf{Part} & \textbf{Main option\roz{(s)}} & \textbf{Work needed for the gateway} \\ \hline
+\grp{User access}
+Portal \& UX & \leavevmode\chg{Next.js/React} & Unified UI, backend-for-frontend, tool embedding \\ \hline
+Identity \& policies & \leavevmode\chg{Keycloak; Open Policy Agent} & Role mapping, ABAC attributes, account linking, policy model \\ \hline
+Notebooks & \leavevmode\chg{JupyterHub + KubeSpawner} & Launch from portal, quotas, dataset mount, audit \\ \hline
+\grp{Data and models}
+Catalogue \& search & \leavevmode\chg{CKAN or Dataverse; OpenSearch + pgvector} & Unified catalogue, \roz{access} filtering in index, federation \\ \hline
+Model registry \& experiments & \leavevmode\chg{MLflow} & Model cards, approval workflow, access rights \\ \hline
+Storage & \leavevmode\chg{PostgreSQL, S3 storage on MinIO/Ceph, Valkey} & Metadata links, lifecycle, retention \\ \hline
+Lineage & OpenLineage + Marquez & Links between jobs, datasets, models and results \\ \hline
+\grp{Compute and inference}
+LLM inference \& serving & \leavevmode\chg{vLLM; KServe} & API proxy, quotas, routing, audit \\ \hline
+Fine-tuning & \leavevmode\chg{Hugging Face TRL/PEFT} & Approved templates, HPC submission, result registration \\ \hline
+HPC \& batch & \leavevmode\chg{SLURM, Open OnDemand; Kubernetes Jobs} & HPC bridge, unified job model, SLURM/\roz{Kubernetes} routing \\ \hline
+Workflows \& containers & \leavevmode\chg{Argo Workflows; Harbor + Trivy, Apptainer on HPC} & Workflow templates, image approval and HPC conversion \\ \hline
+\grp{Operations and federation}
+Observability \& audit & Prometheus, Grafana, Loki, OpenTelemetry; append-only log + \roz{write-once} archive & Correlation with user/job, shared audit events \\ \hline
+Learning \& support & \leavevmode\chg{Moodle; Zammad or GLPI} & Portal links, lab quotas, contextual tickets \\ \hline
+Federation \& accounting & \leavevmode\chg{DCAT/DCAT-AP adapters; Waldur as cross-layer option} & Partner adapters, \roz{per-Factory} accounting \\ \hline
+\end{tabular}
+\end{table*}
+
+The ten function groups in Table~\ref{tab:func} come from the SAIFA \tri{gateway} design \tri{document~\cite{saifa_d31}}. \roz{Three rules apply to all of them: every action is checked against permissions, every dataset and model has a version and a record of its origin (lineage), and every job is checked against the quota before it is queued.}
+
+\roz{The split of responsibilities} \tri{also follows this document}~\cite{saifa_d31}. \chg{The institutional or EuroHPC identity provider authenticates the user, and the gateway links this identity to its own account.} \roz{For local resources,} \chg{quota and accounting logic belongs to the gateway, which} \dop{keeps the record of available quota,} \chg{reserves} \roz{quota} \chg{before a job is queued and records inference consumption.} \roz{The gateway stores metadata, review decisions, job records, audit logs and lineage, but job status always comes from the scheduler, locally or at the partner site. Some details, such as the quota hierarchy, review states and the split of tasks with system operators, are not final yet}~\cite{saifa_d31}.
+
+\section{Description of the Main Functions}
+\label{sec:functions}
+
+\subsection{Login, access and collaboration}
+Users log in with their university or institute account (for example through eduGAIN) or with a EuroHPC account. Access is decided by the user's role \roz{(role-based access control, RBAC)} and by other attributes, such as organisation, project and type of data \roz{(attribute-based access control, ABAC)}~\cite{nist_abac}. Seeing a resource in the catalogue and using it are two separate permissions, \roz{and search shows resources of other projects only if they are public or their owners allow it}.
+
+\subsection{Datasets and models}
+\roz{To train a model, a user only needs access to the dataset and can repeat runs freely. Each result is linked automatically to its dataset, settings and job. Formal review, in which a data administrator or model reviewer checks the metadata, origin, licence and test results, is needed only when a dataset or model is published}\nov{, so that it does not slow down everyday work}~\cite{saifa_d31}. \chg{A version is published only after} \roz{the reviewer} \chg{approves it, and the decision is recorded.} \roz{Only published resources can be shared with partners.} \nov{\tri{Large uploads can resume after an interruption, each part is checked, and saved versions never change.} Where appropriate, published resources get} FAIR \tri{(findable, accessible, interoperable, reusable)} metadata~\cite{wilkinson2016fair}, which \roz{eases sharing with} partner catalogues.
+
+\subsection{Jobs, inference and experiments}
+Before a job \roz{is queued}, the gateway checks the input data and the user's access, and reserves quota. \roz{After that,} it sends the job to HPC through SLURM~\cite{yoo2003slurm} or to Kubernetes~\cite{burns2016borg}. \nov{\tri{Sensitive data, such as medical records, is not copied to other systems: the job runs on the system that stores it.}} The gateway collects status, logs and results and shows them in the same way for all systems. \roz{Containers} are converted to Apptainer/Singularity images~\cite{kurtzer2017singularity} for HPC. \nov{Requests to a model go through a proxy that authenticates the user, checks the limits and records the usage.} \roz{When runs are compared,} a person always decides which model to keep.
+
+\subsection{\nov{What is new for an Antenna: local and partner resources}}
+A Factory mostly \emph{publishes} its services and resources to European platforms. \nov{\tri{An Antenna has a harder task: besides its local resources, it also uses those of partner Factories, which are independent and decide how their resources are used.} \tri{The gateway only forwards users and large jobs to each partner in that partner's format, returns the results and records usage for each Factory.}} Each partner is connected through its own adapter, for example using DCAT~\cite{w3c_dcat3}\nov{, so partners do not have to adopt the Antenna's platform}. \roz{The gateway shows where each partner resource comes from and never edits it. At first, the links to partner Factories are read-only or simulated. If a partner is unavailable, the gateway still works for local users.}
+
+\fin{For example, once a partner link is active, a researcher with computing time at Pharos signs in through eduGAIN and selects a published dataset and an approved training template. Request validation checks the permissions and whether the dataset may be shared, and the federation adapter translates the job into the Pharos format and passes on the user's identity. Pharos then queues the job under its own rules. The gateway shows the status reported by Pharos, links the results to the dataset and template, and records the usage under Pharos~\cite{saifa_d31}.}
+
+\section{\chg{Existing Solutions and} Possible Tools}
+\label{sec:tools}
+
+\chg{Three existing solutions already cover part of the} \nov{proposed architecture}\roz{. Waldur is a platform for projects, allocation and accounting on cloud and HPC systems}~\cite{waldur_docs}\roz{, and Open OnDemand is a web portal for HPC centres}~\cite{hudak2018ood}. \roz{The EFP}~\cite{eurohpc_efp} \roz{is itself built on MyAccessID, Waldur and Open OnDemand}\nov{, among other components}~\cite{nortamo2025efp}. \roz{Table~\ref{tab:func} shows what each of them offers to users.} \nov{We assigned the marks \tri{in the last three columns of Table~\ref{tab:func}} from the public documentation of each solution (\fin{November} 2026), without hands-on tests.} \fin{Only the features listed for each group were rated. A feature counted as available if the documentation of the standard release describes it as available to users and it needs only configuration, and as partly available if only part of it is described or it needs a plugin, another product or new code; the legend of Table~\ref{tab:func} gives the thresholds.} \nov{For the EFP, we rated what the platform offers to its users, not what its components could provide.} \nov{Together they cover login, projects, allocation, accounting and interactive HPC work.} \nov{Of the AI-specific functions, only LLM access with per-key limits is partly available, \tri{through Waldur's integration with a LiteLLM proxy. Dataset} and model review and experiment lineage are not provided. Waldur can connect to other Waldur deployments, but none of the three is built for a gateway that combines local resources with the different platforms of partner Factories and keeps usage separately for each of them. The proposed architecture adds these functions and common rules for access, quotas and metadata\fin{, and can reuse Waldur and Open OnDemand as components (Table~\ref{tab:tools})}.}
+
+\chg{Existing tools are used first, and new ones are built only when needed.} Table~\ref{tab:tools} gives the main \roz{options} for each part and the work that \nov{the SAIFA} gateway still has to do\chg{; alternatives are listed in~\cite{saifa_d31}}. Most are well known open-source projects, for example JupyterHub~\cite{kluyver2016jupyter,jupyterhub_docs}, MLflow~\cite{zaharia2018mlflow}, vLLM~\cite{kwon2023vllm} and Open OnDemand~\cite{hudak2018ood}. Tools are chosen in two steps\nov{. \tri{First,} each tool must meet the requirements for its area. \tri{Those} that pass are \tri{then} compared by ease of use, integration and operating effort, cost, maturity and legal issues, \tri{and open-source tools on local servers are preferred}~\cite{saifa_d31}}.
+
+\section{\nov{SAIFA Context and Planned Validation}}
+\label{sec:saifa}
+
+SAIFA, \chg{the Serbian Antenna, runs} from May 2026 to April 2029~\cite{cordis_saifa}. Its local resources are the PARADOX HPC cluster at the Institute of Physics Belgrade and the AI \roz{computing infrastructure of the Office for IT and eGovernment}. \roz{The function groups in Table~\ref{tab:func}} \nov{are based on} \roz{23 user stories, 18 from its four domains (language and culture, energy and manufacturing, health, environment) and 5 cross-domain. Examples include flood prediction, synthetic genome data and hate-speech detection in Serbian.} \nov{From these, the design \tri{document} derives 20 representative system use cases, which still have to be validated with domain owners}~\cite{saifa_d31}.
+
+\fin{Validation will proceed in stages}~\cite{saifa_d31}. \nov{First, a} proof-of-concept setup \nov{will} test the candidate tools \nov{from Table~\ref{tab:tools}} together\fin{. For each component, it must show the source of truth, identity propagation, charging, auditing, access-rule enforcement and behaviour when a dependency fails}. \nov{Second, the beta version planned for April 2027 must let a user log in, find a resource, run a job and follow its progress}\fin{, in scenarios first checked by consortium users and domain owners. Access control, audit, transfer integrity and recovery will be tested before a function is opened to external users. Finally, selected applications will be benchmarked at Pharos and IT4LIA.}
+
+\section{Conclusion}
+
+\nov{This paper described the main functions of an AI gateway and proposed an architecture for the SAIFA gateway, which has not yet been implemented or evaluated. Compared with the three existing solutions, most new development will likely be needed for the AI-specific functions and for work with partner Factories, with separate accounting for each.} \chg{Open questions} \roz{for future work} \chg{are how gateways will use EFP login and allocation} \tri{once AI Factories join it~\cite{eurohpc_efp},} \chg{which metadata to use for models and datasets, and} \tri{under which conditions datasets and models may be sent to partners abroad~\cite{saifa_d31}.}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references_v4}
+
+\end{document}
